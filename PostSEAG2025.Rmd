@@ -110,6 +110,8 @@ kable(event_summary, caption = "Tournament Event Summary", booktabs = TRUE) %>%
   kable_styling(latex_options = c("striped", "hold_position"), full_width = FALSE)
 ```
 
+\clearpage
+
 # MATCH SCORE
 
 ```{r match_score_summary}
@@ -188,8 +190,6 @@ kable(final_table,
   column_spec(6, bold = TRUE) %>%
   row_spec(0, bold = TRUE)
 ```
-
-\clearpage
 
 # SCORING & FEED SUMMARY
 
@@ -400,15 +400,15 @@ player_stats_combined <- tibble(Player = all_players) %>%
                            format_kpi(Goals/Attempts, is_percent = TRUE), 
                            "-"),
     Defl_Pct = ifelse(Deflections > 0,
-                      paste0(round(Deflections_to_Gain / Deflections * 100), "%"),
-                      "-")
+                     paste0(round(Deflections_to_Gain / Deflections * 100), "\\%"),
+                     "-")
   ) %>%
   ungroup() %>%
   
   # --- CRITICAL FIX IS HERE ---
   # We rename 'Shooting %' to 'Shooting \\%' so LaTeX prints the % symbol 
   # instead of treating it as a comment.
-  select(Player, Goals, Attempts, `Shooting \\%` = Pct_Formatted, Feeds, Gains, Turnovers, 
+  select(Player, Goals, Attempts, `Shooting \\%` = Pct_Formatted, Feeds, Gains, Turnovers,
          Deflections, Defl_Pct) %>%
   arrange(desc(Goals), desc(Feeds))
 
@@ -417,16 +417,15 @@ player_stats_combined <- tibble(Player = all_players) %>%
 
 col_names_display <- c(
   "Player", "Goals", "Attempts", "Shot \\%",
-  "Feeds", "Gains", "Turnovers",
-  "Deflections", "Deflections to Gain \\%"
+  "Feeds", "Gains", "Turnovers", "Deflections", "Deflections \nto Gain \\%"
 )
 
 kable(player_stats_combined, 
       booktabs = TRUE,
       escape = FALSE, # Required for colors to show
-      col.names = col_names_display,
+      col.names = linebreak(col_names_display, align = "c"), 
       caption = "Aggregate Player Statistics (All Matches)") %>%
-  kable_styling(latex_options = c("hold_position"), full_width = FALSE) %>% # Removed striped
+  kable_styling(latex_options = c("hold_position", "scale_down"), full_width = FALSE) %>% # Removed striped
   row_spec(0, bold = TRUE)
 ```
 
@@ -1374,13 +1373,6 @@ calc_cp_match_metrics <- function(df, row_filter, goal_keyword, prefix) {
 
 # 3. GENERATE TABLES
 # ------------------------------------------------------------------------------
-# Define Order
-chrono_order <- c(
-  "vs AANA Dragons (Day 1)",
-  "vs AANA Dragons (Day 2)",
-  "vs AANA Dragons (Day 3)"
-)
-
 # Table 1: Quarterly Summary
 sgp_cpa  <- calc_cp_metrics(data, "SGP CPA",  "SGP Goal", "CPA", use_color = TRUE)
 sgp_dcpa <- calc_cp_metrics(data, "SGP DCPA", "SGP Goal", "DCPA", use_color = TRUE)
@@ -1390,9 +1382,8 @@ final_cpa_table <- bind_rows(sgp_cpa, sgp_dcpa)
 sgp_cpa_match  <- calc_cp_match_metrics(data, "SGP CPA",  "SGP Goal", "CPA")
 sgp_dcpa_match <- calc_cp_match_metrics(data, "SGP DCPA", "SGP Goal", "DCPA")
 
-final_match_table <- bind_rows(sgp_cpa_match, sgp_dcpa_match) %>%
-  # --- FIX: ENFORCE CHRONOLOGICAL ORDER ---
-  select(Metric, any_of(chrono_order))
+final_match_table <- bind_rows(sgp_cpa_match, sgp_dcpa_match)
+  
 
 # 4. RENDER TABLES
 # ------------------------------------------------------------------------------
@@ -1422,7 +1413,7 @@ kable(final_match_table,
 
 # SGP CENTRE PASS ATTACKING TENDENCIES
 
-```{r cpa_tendencies, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=10, fig.align='center'}
+```{r cpa_tendencies, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=4, fig.align='center'}
 
 # 1. DEFINE MAPS
 # ------------------------------------------------------------------------------
@@ -1534,9 +1525,10 @@ draw_cpa_heatmap <- function(plot_data, title_text) {
     
     scale_color_manual(values = c("FALSE" = "black", "TRUE" = "white"), guide = "none") +
     
-    geom_text(aes(label = Label), 
-              color = "grey30", size = 3, vjust = 2.5) +
-    
+
+    geom_text(aes(label = Label,
+                  color = Highlight %in% c("Rank1", "Rank2")), 
+              size = 3, vjust = 2.5) +
     scale_fill_manual(values = highlight_colors) +
     coord_fixed(ratio = 1) +
     theme_void() +
@@ -1679,7 +1671,7 @@ pass_combination_plot <- data %>%
   ggplot(aes(x = count, y = pass_path)) +
   
   # Use a single static color since we aren't tracking success anymore
-  geom_col(fill = "green") +
+  geom_col(fill = "steelblue") +
   
   # Add labels "on top" (to the right) of the bars
   geom_text(aes(label = count), hjust = -0.2, size = 3.5, color = "black") +
@@ -1706,9 +1698,9 @@ print(pass_combination_plot)
 
 \clearpage
 
-# AANA DRAGONS (AGGREGATED) CENTRE PASS ATTACKING TENDENCIES
+# OPPONENT CENTRE PASS ATTACKING TENDENCIES
 
-```{r BRUPHITHA_cpa_tendencies, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=10, fig.align='center'}
+```{r opponent_cpa_tendencies, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=4, fig.align='center'}
 library(gridExtra)
 library(grid)
 library(dplyr)
@@ -1762,7 +1754,6 @@ get_loc_counts <- function(df, pass_pattern, map_df) {
   
   df %>%
     filter(Row == "SGP CPD") %>% # Updated Row for Opposition
-    filter(str_detect(Opponent, "AANA Dragons")) %>% # Filter for specific opponents
     separate_rows(!!sym(target_col), sep = ",\\s*") %>%
     mutate(Location = str_trim(!!sym(target_col))) %>%
     filter(Location %in% map_df$Location) %>%
@@ -1783,7 +1774,6 @@ get_receiver_stats <- function(df, pass_pattern, recv_pattern, target_recvs) {
 
   stats <- df %>%
     filter(Row == "SGP CPD") %>% # Updated Row for Opposition
-    filter(str_detect(Opponent, "AANA Dragons")) %>% # Filter for specific opponents
     select(Receiver_Raw = !!sym(recv_col)) %>%
     separate_rows(Receiver_Raw, sep = ",\\s*") %>%
     mutate(Receiver = str_trim(Receiver_Raw)) %>%
@@ -1842,9 +1832,9 @@ draw_cpa_heatmap <- function(plot_data, title_text) {
               fontface = "bold", size = 5) +
     
     scale_color_manual(values = c("FALSE" = "black", "TRUE" = "white"), guide = "none") +
-    
-    geom_text(aes(label = Label), 
-              color = "grey30", size = 3, vjust = 2.5) +
+    geom_text(aes(label = Label,
+                  color = Highlight %in% c("Rank1", "Rank2")), 
+              size = 3, vjust = 2.5) +
     
     scale_fill_manual(values = highlight_colors) +
     
@@ -1899,11 +1889,10 @@ grid.arrange(plot_p1, tbl_p1, ncol = 2, widths = c(1.5, 1))
 grid.arrange(plot_p2, tbl_p2, ncol = 2, widths = c(1.5, 1))
 ```
 
-```{r BRUPHITHA_pass_combo_ranked, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=7}
+```{r opponent_pass_combo_ranked, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=7}
 # 1. Prepare the data (OPP)
 opp_pass_combo_plot <- data %>%
   filter(Row == "SGP CPD") %>% # FILTER FOR OPPOSITION CPA
-  filter(str_detect(Opponent, "AANA Dragons")) %>% # Specific Opponents
   select(
     Pass1_Raw = `1st Phase Pass`, 
     Pass2_Raw = `2nd Phase Pass`
@@ -1934,13 +1923,13 @@ opp_pass_combo_plot <- data %>%
   ggplot(aes(x = count, y = pass_path)) +
   
   # Use Blue fill for Opponent
-  geom_col(fill = "dark red") + 
+  geom_col(fill = "steelblue") + 
   
   geom_text(aes(label = count), hjust = -0.2, size = 3.5, color = "black") +
   scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
   
   labs(
-    title = "Top 10 AANA Dragons CPA Pass Combinations",,
+    title = "Top 10 Opponents CPA Pass Combinations",,
     subtitle = "Ranked by frequency (Phase 1 -> Phase 2)",
     x = "Frequency",
     y = "" 
@@ -2083,13 +2072,7 @@ calc_gn_to_match_table <- function(df) {
   # A. CALCULATE RAW STATS
   stats_match <- df %>%
     filter(Row %in% c("SGP Gains", "SGP Turnovers")) %>%
-    mutate(Match = case_when(
-  str_detect(Opponent, "AANA Dragons \\(Day 1\\)") ~ "Day 1",
-  str_detect(Opponent, "AANA Dragons \\(Day 2\\)") ~ "Day 2",
-  str_detect(Opponent, "AANA Dragons \\(Day 3\\)") ~ "Day 3",
-  TRUE ~ Opponent
-)) %>%
-    group_by(Match, Row) %>%
+    group_by(Opponent, Row) %>%
     summarise(
       Count = n(),
       Success_Gain = sum(Row == "SGP Gains" & str_detect(`Shot Outcome`, "SGP Goal"), na.rm=TRUE),
@@ -2146,7 +2129,7 @@ calc_gn_to_match_table <- function(df) {
       }
     ) %>%
     ungroup() %>%
-    select(Match, Display_Gains, Display_Gains_Conv, Display_TO, Display_TO_Concede, Display_Diff) %>%
+    select(Opponent, Display_Gains, Display_Gains_Conv, Display_TO, Display_TO_Concede, Display_Diff) %>%
     
     # D. RESHAPE
     pivot_longer(cols = starts_with("Display"), names_to = "Metric_Code", values_to = "Value") %>%
@@ -2159,11 +2142,8 @@ calc_gn_to_match_table <- function(df) {
         Metric_Code == "Display_Diff" ~ "Gains to Turnover Differential"
       )
     ) %>%
-    select(Match, Metric, Value) %>%
-    pivot_wider(names_from = Match, values_from = Value) %>%
-    
-    # --- FIX: ENFORCE CHRONOLOGICAL ORDER ---
-    select(Metric, any_of(c("Day 1", "Day 2", "Day 3"))) %>%
+    select(Opponent, Metric, Value) %>%
+    pivot_wider(names_from = Opponent, values_from = Value) %>%
     
     mutate(Metric = factor(Metric, levels = c(
       "Gains", "Gains Conversion \\%", "Turnovers", "Turnovers to Concede \\%", "Gains to Turnover Differential"
