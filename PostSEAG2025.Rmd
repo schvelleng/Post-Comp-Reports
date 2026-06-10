@@ -1,0 +1,2628 @@
+---
+title: "Post-SEA Games 2025 Netball Report"
+subtitle: |
+  ![](logo.jpg){width=1in}
+  
+  \vspace{0.5cm}
+  Prepared for:
+  \vspace{0.2cm}
+  
+  ![](NetballSG_logo.jpg){width=1in}
+author: "HPSI Performance Analyst: Justin Tan"
+date: "Prepared on: `r format(Sys.Date(), '%d-%m-%Y')`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: false
+    number_sections: false
+  html_document:
+    theme: default
+    toc: false
+    df_print: paged
+header-includes:
+  - \usepackage{amsmath}
+  - \usepackage{sectsty}
+  - \usepackage{booktabs}
+  - \usepackage[table]{xcolor}
+  - \usepackage{float}    
+  - \usepackage{makecell} 
+  - \sectionfont{\centering}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+# Global options for R chunks
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = 'center', fig.width = 6, fig.height = 4)
+
+# Force all kable tables to be LaTeX format
+options(knitr.table.format = "latex")
+
+# Load necessary libraries
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(scales)
+library(ggrepel)
+library(glue)
+library(lubridate)
+library(gridExtra)
+library(grid)
+
+#If any of the above libraries have not been installed, to install as follows:
+# install.packages(c("tidyverse", "knitr", "kableExtra", "ggplot2", "scales", "ggrepel", "glue", "lubridate", "gridExtra", "grid"))
+```
+
+```{r user_inputs, include=FALSE}
+# ==============================================================================
+#  USER INPUTS: UPDATE THIS SECTION FOR EVERY NEW MATCH
+# ==============================================================================
+
+# 1. FILE PATH
+# ------------------------------------------------------------------------------
+csv_file_path <- "data/combined_test_series_aus.csv"
+# Read Data using the variable defined in Config
+data = read_csv(csv_file_path)
+
+# 2. TOURNAMENT METADATA
+# ------------------------------------------------------------------------------
+meta_event    <- "AANA Dragons Test Series"
+meta_venue    <- "Singapore"
+meta_round    <- "Tournament Summary"
+meta_analyst  <- "Justin Tan"
+meta_team_name <- "Singapore"
+meta_opponent_name <- "All Opponents" # Renamed for aggregate report
+meta_matchname <- "Tournament Overall Stats"
+
+
+# Map to legacy variables for compatibility with downstream chunks
+team   <- meta_team_name
+opponent <- meta_opponent_name
+
+# Remove empty columns if they exist
+data <- data %>%
+  select(-one_of(c("Ungrouped", "Notes", "Flags")[sapply(c("Ungrouped", "Notes", "Flags"), function(col) all(is.na(data[[col]])))]))
+
+# ------------------------------------------------------------------------------
+# DATA CLEANING: SIMPLIFY QUARTERS
+# ------------------------------------------------------------------------------
+# Logic: Remove the first comma and everything following it.
+# This transforms "Q1, Q1, Q1" -> "Q1" and "Q2, Q2" -> "Q2".
+data <- data %>%
+  mutate(Quarter = str_trim(str_remove(Quarter, ",.*")))
+```
+
+# EVENT SUMMARY
+
+```{r event_summary}
+# Summary statistics for the entire tournament
+event_summary <- tribble(
+  ~Field,             ~Value,
+  "Event",           meta_event,
+  "Venue",           meta_venue,
+  "Analyst",         meta_analyst,
+  "Opponents Faced", "AANA Dragons"
+)
+
+kable(event_summary, caption = "Tournament Event Summary", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("striped", "hold_position"), full_width = FALSE)
+```
+
+# MATCH SCORE
+
+```{r match_score_summary}
+options(knitr.table.format = "latex")
+
+# ------------------------------------------------------------------------------
+# 2. HELPER FUNCTION: EXTRACT & SUM GOALS ACROSS ALL MATCHES
+# ------------------------------------------------------------------------------
+get_total_scores <- function(df, row_filter, outcome_keyword) {
+  df %>%
+    filter(str_detect(Row, row_filter)) %>% # Use str_detect for safety
+    mutate(Goals = str_count(`Shot Outcome`, outcome_keyword)) %>%
+    group_by(Quarter) %>%
+    summarise(Score = sum(Goals, na.rm = TRUE), .groups = "drop") %>%
+    # Ensure all quarters exist
+    complete(Quarter = c("Q1", "Q2", "Q3", "Q4"), fill = list(Score = 0)) %>%
+    pivot_wider(names_from = Quarter, values_from = Score)
+}
+
+# ------------------------------------------------------------------------------
+# 3. CALCULATE AGGREGATED DATA
+# ------------------------------------------------------------------------------
+
+# SGP Total Goals (Sum of all SGP Goals in the dataset)
+sgp_numeric <- get_total_scores(data, "SGP Shot", "SGP Goal") %>%
+  mutate(Total = rowSums(select(., matches("Q[1-4]"))))
+
+# OPP Total Goals (Sum of all OPP Goals in the dataset)
+opp_numeric <- get_total_scores(data, "OPP Shot", "OPP Goal") %>%
+  mutate(Total = rowSums(select(., matches("Q[1-4]"))))
+
+# Differential (SGP - OPP)
+diff_numeric <- sgp_numeric %>% select(where(is.numeric)) - opp_numeric %>% select(where(is.numeric))
+
+# ------------------------------------------------------------------------------
+# 4. FORMATTING LOGIC
+# ------------------------------------------------------------------------------
+format_diff <- function(val) {
+  if (val > 0) {
+    color_bg <- "#57BB8A" # Green
+  } else {
+    color_bg <- "#E67C73" # Red
+  }
+  cell_spec(val, "latex", color = "white", bold = TRUE, background = color_bg)
+}
+
+# ------------------------------------------------------------------------------
+# 5. PREPARE TABLE ROWS
+# ------------------------------------------------------------------------------
+sgp_final <- sgp_numeric %>%
+  mutate(across(everything(), as.character)) %>%
+  mutate(Team = meta_team_name) 
+
+opp_final <- opp_numeric %>%
+  mutate(across(everything(), as.character)) %>%
+  mutate(Team = meta_opponent_name) # "All Opponents"
+
+diff_final <- diff_numeric %>%
+  mutate(across(everything(), format_diff)) %>%
+  mutate(Team = "Differential")
+
+# ------------------------------------------------------------------------------
+# 6. RENDER
+# ------------------------------------------------------------------------------
+final_table <- bind_rows(sgp_final, opp_final, diff_final) %>%
+  select(Team, Q1, Q2, Q3, Q4, Total) 
+
+kable(final_table, 
+      booktabs = TRUE, 
+      align = "c", 
+      escape = FALSE, 
+      caption = "Aggregated Score Summary (All Games)") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"), full_width = FALSE, position = "center") %>%
+  column_spec(1, bold = TRUE) %>%
+  row_spec(2, hline_after = TRUE) %>%
+  column_spec(6, bold = TRUE) %>%
+  row_spec(0, bold = TRUE)
+```
+
+\clearpage
+
+# SCORING & FEED SUMMARY
+
+KPI Summary: At least 90% accuracy for Shooting and Circle Edge Feeds
+
+```{r scoring_feed_summary}
+options(knitr.table.format = "latex")
+
+# ------------------------------------------------------------------------------
+# 1. DATA PREPARATION
+# ------------------------------------------------------------------------------
+# Expand Shots
+shots_long <- data %>%
+  filter(str_detect(Row, "SGP Shot")) %>% # Filter SGP only
+  separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+  mutate(`Shot Outcome` = str_trim(`Shot Outcome`))
+
+# Expand Feeds
+feeds_long <- data %>%
+  filter(str_detect(Row, "SGP Feed")) %>% # Filter SGP only
+  separate_rows(`Feed Location`, `Feed Success`, sep = ",\\s*") %>%
+  mutate(across(c(`Feed Location`, `Feed Success`), str_trim))
+
+# ------------------------------------------------------------------------------
+# 2. METRIC CALCULATION (SGP ONLY)
+# ------------------------------------------------------------------------------
+# Shot Stats
+shot_stats <- shots_long %>%
+  filter(str_detect(`Shot Outcome`, "Goal|Miss")) %>%
+  group_by(Quarter) %>%
+  summarise(Attempts = n(), Goals = sum(str_detect(`Shot Outcome`, "Goal")), .groups = "drop") %>%
+  complete(Quarter = c("Q1", "Q2", "Q3", "Q4"), fill = list(Attempts = 0, Goals = 0))
+
+# Feed Stats
+feed_stats <- feeds_long %>%
+  filter(`Feed Location` == "Circle Edge") %>%
+  group_by(Quarter) %>%
+  summarise(CE_Attempts = n(), CE_Success = sum(`Feed Success` == "YES", na.rm = TRUE), .groups = "drop") %>%
+  complete(Quarter = c("Q1", "Q2", "Q3", "Q4"), fill = list(CE_Attempts = 0, CE_Success = 0))
+
+# Combine
+full_stats <- full_join(shot_stats, feed_stats, by = "Quarter")
+
+# Calculate Totals
+total_row <- full_stats %>%
+  summarise(
+    Quarter = "Total", 
+    Attempts = sum(Attempts, na.rm = TRUE),
+    Goals = sum(Goals, na.rm = TRUE),
+    CE_Attempts = sum(CE_Attempts, na.rm = TRUE),
+    CE_Success = sum(CE_Success, na.rm = TRUE)
+  ) 
+
+# Bind and Calculate Percentages
+sgp_table_data <- bind_rows(full_stats, total_row) %>%
+  mutate(
+    `Shot Attempts` = as.numeric(Attempts),
+    `Shooting (%)` = Goals / Attempts,
+    `Circle Edge Feed Attempts` = as.numeric(CE_Attempts),
+    `Circle Edge Feed Accuracy (%)` = CE_Success / CE_Attempts
+  ) %>%
+  select(Quarter,
+         `Shot Attempts`,
+         `Shooting (%)`,
+         `Circle Edge Feed Attempts`,
+         `Circle Edge Feed Accuracy (%)`) %>%
+  pivot_longer(cols = -Quarter, names_to = "Metric", values_to = "Value") %>%
+  pivot_wider(names_from = Quarter, values_from = Value)
+
+# ------------------------------------------------------------------------------
+# 3. CONDITIONAL FORMATTING
+# ------------------------------------------------------------------------------
+format_kpi <- function(val, is_percent = FALSE) {
+  if (is.na(val) || !is.finite(val)) return("-")
+
+  if (is_percent) {
+    if (val >= 0.90) {
+      color_bg <- "#57BB8A" # Green
+    } else if (val >= 0.80) {
+      color_bg <- "#F4B400" # Yellow/Orange
+    } else {
+      color_bg <- "#E67C73" # Red
+    }
+    txt <- paste0(round(val * 100), "%")
+    cell_spec(txt, "latex", color = "white", bold = TRUE, background = color_bg)
+  } else {
+    as.character(round(val))
+  }
+}
+
+final_sgp_table <- sgp_table_data %>%
+  rowwise() %>%
+  mutate(across(c(Q1, Q2, Q3, Q4, Total), ~ {
+    if (Metric %in% c("Shooting (%)", "Circle Edge Feed Accuracy (%)"))
+      format_kpi(., TRUE)
+    else
+      format_kpi(., FALSE)
+  })) %>%
+  ungroup() %>%
+  mutate(
+    Metric = case_when(
+      Metric == "Shooting (%)" ~ "Shooting (\\%)",
+      Metric == "Circle Edge Feed Accuracy (%)" ~ "Circle Edge Feed Accuracy (\\%)",
+      TRUE ~ Metric
+    )
+  )
+
+# ------------------------------------------------------------------------------
+# 4. RENDER TABLE
+# ------------------------------------------------------------------------------
+kable(final_sgp_table,
+      booktabs = TRUE,
+      escape = FALSE,
+      caption = "Singapore Scoring \\& Feed Statistics (Overall)") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"), full_width = FALSE) %>%
+  column_spec(1, bold = TRUE) %>%
+  column_spec(6, bold = TRUE) %>%
+  row_spec(0, bold = TRUE)
+```
+
+\clearpage
+
+# SINGAPORE PLAYER STATS (AGGREGATED)
+
+```{r player_stats_summary}
+options(knitr.table.format = "latex")
+
+# 1. HELPER: KPI FORMATTING
+# ------------------------------------------------------------------------------
+format_kpi <- function(val, is_percent = FALSE) {
+  if (is.na(val) || !is.finite(val)) return("-")
+  
+  if (is_percent) {
+    if (val >= 0.90) {
+      color_bg <- "#57BB8A" # Green
+    } else if (val >= 0.80) {
+      color_bg <- "#F4B400" # Yellow/Orange
+    } else {
+      color_bg <- "#E67C73" # Red
+    }
+    
+    # We use "%" here. cell_spec() handles the escaping for the cell VALUE automatically.
+    txt <- paste0(round(val * 100), "%")
+    
+    cell_spec(txt, "latex", color = "white", bold = TRUE, background = color_bg)
+  } else {
+    as.character(round(val))
+  }
+}
+
+# 2. PREPARE AGGREGATED PLAYER METRICS
+# ------------------------------------------------------------------------------
+player_shooting <- data %>%
+  filter(Row == "SGP Shot") %>%
+  separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+  mutate(`Shot Outcome` = str_trim(`Shot Outcome`)) %>%
+  group_by(Player) %>%
+  summarise(
+    Goals = sum(str_detect(`Shot Outcome`, "Goal"), na.rm = TRUE),
+    Attempts = n(),
+    .groups = "drop"
+  )
+
+player_feeds <- data %>%
+  filter(Row == "SGP Feed") %>%
+  separate_rows(`Feed Location`, `Feed Success`, sep = ",\\s*") %>%
+  group_by(Player) %>%
+  summarise(Feeds = n(), .groups = "drop")
+
+player_gains <- data %>%
+  filter(Row == "SGP Gains") %>%
+  group_by(Player) %>%
+  summarise(Gains = n(), .groups = "drop")
+
+player_turnovers <- data %>%
+  filter(Row == "SGP Turnovers") %>%
+  group_by(Player) %>%
+  summarise(Turnovers = n(), .groups = "drop")
+
+player_deflections <- data %>% 
+  filter(Row == "SGP Deflection") %>% 
+  separate_rows(Player, `Deflection Success`, sep = ",\\s*") %>% 
+  mutate(across(c(Player, `Deflection Success`), str_trim)) %>% 
+  group_by(Player) %>% 
+  summarise(
+    Deflections = n(),
+    Deflections_to_Gain = sum(str_detect(`Deflection Success`, "Yes"), na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 3. COMBINE ALL METRICS
+# ------------------------------------------------------------------------------
+all_players <- unique(c(player_shooting$Player, player_feeds$Player, player_gains$Player, player_turnovers$Player))
+all_players <- all_players[!is.na(all_players) & all_players != ""]
+
+player_stats_combined <- tibble(Player = all_players) %>%
+  left_join(player_shooting, by = "Player") %>%
+  left_join(player_feeds, by = "Player") %>%
+  left_join(player_gains, by = "Player") %>%
+  left_join(player_turnovers, by = "Player") %>%
+  left_join(player_deflections, by = "Player") %>%
+  replace(is.na(.), 0) %>%
+  
+  # --- APPLY COLOR LOGIC ---
+  rowwise() %>%
+  mutate(
+    Pct_Formatted = ifelse(Attempts > 0, 
+                           format_kpi(Goals/Attempts, is_percent = TRUE), 
+                           "-"),
+    Defl_Pct = ifelse(Deflections > 0,
+                      paste0(round(Deflections_to_Gain / Deflections * 100), "%"),
+                      "-")
+  ) %>%
+  ungroup() %>%
+  
+  # --- CRITICAL FIX IS HERE ---
+  # We rename 'Shooting %' to 'Shooting \\%' so LaTeX prints the % symbol 
+  # instead of treating it as a comment.
+  select(Player, Goals, Attempts, `Shooting \\%` = Pct_Formatted, Feeds, Gains, Turnovers, 
+         Deflections, Defl_Pct) %>%
+  arrange(desc(Goals), desc(Feeds))
+
+# 4. RENDER TABLE
+# ------------------------------------------------------------------------------
+
+col_names_display <- c(
+  "Player", "Goals", "Attempts", "Shot \\%",
+  "Feeds", "Gains", "Turnovers",
+  "Deflections", "Deflections to Gain \\%"
+)
+
+kable(player_stats_combined, 
+      booktabs = TRUE,
+      escape = FALSE, # Required for colors to show
+      col.names = col_names_display,
+      caption = "Aggregate Player Statistics (All Matches)") %>%
+  kable_styling(latex_options = c("hold_position"), full_width = FALSE) %>% # Removed striped
+  row_spec(0, bold = TRUE)
+```
+
+\clearpage
+
+# SINGAPORE SHOOTING
+
+```{r sgp_shooting_summary}
+# ------------------------------------------------------------------------------
+# 0. CONFIG & HELPER
+# ------------------------------------------------------------------------------
+chrono_order <- c("vs AANA Dragons (Day 1)", "vs AANA Dragons (Day 2)", "vs AANA Dragons (Day 3)")
+
+# Helper function (Same as used in player_stats_summary)
+format_kpi <- function(val, is_percent = FALSE) {
+  if (is.na(val) || !is.finite(val)) return("-")
+  
+  if (is_percent) {
+    if (val >= 0.90) {
+      color_bg <- "#57BB8A" # Green
+    } else if (val >= 0.80) {
+      color_bg <- "#F4B400" # Yellow/Orange
+    } else {
+      color_bg <- "#E67C73" # Red
+    }
+    
+    # Use simple "%". cell_spec escapes it automatically.
+    txt <- paste0(round(val * 100), "%")
+    
+    cell_spec(txt, "latex", color = "white", bold = TRUE, background = color_bg)
+  } else {
+    as.character(round(val))
+  }
+}
+
+# ------------------------------------------------------------------------------
+# 1A. OVERALL SHOOTING SUMMARY (Q1-Q4 Breakdown + Total)
+# ------------------------------------------------------------------------------
+shooting_summary_long <- data %>%
+  filter(Row == "SGP Shot") %>%
+  separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+  mutate(`Shot Outcome` = str_trim(`Shot Outcome`)) %>%
+  group_by(Quarter) %>%
+  summarise(
+    Attempts = n(),
+    Goals = sum(str_detect(`Shot Outcome`, "Goal"), na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  complete(Quarter = c("Q1", "Q2", "Q3", "Q4"), fill = list(Attempts = 0, Goals = 0))
+
+# Calculate Total Row
+total_shooting <- shooting_summary_long %>%
+  summarise(
+    Quarter = "Total",
+    Attempts = sum(Attempts),
+    Goals = sum(Goals)
+  )
+
+# Combine and Format
+shooting_summary_final <- bind_rows(shooting_summary_long, total_shooting) %>%
+  mutate(
+    `Shooting %` = ifelse(Attempts > 0, Goals / Attempts, 0)
+  ) %>%
+  
+  # --- APPLY COLOR LOGIC ---
+  rowwise() %>%
+  mutate(
+    Attempts_Str = as.character(Attempts),
+    Goals_Str = as.character(Goals),
+    Pct_Formatted = format_kpi(`Shooting %`, is_percent = TRUE)
+  ) %>%
+  ungroup() %>%
+  
+  # Pivot to Wide
+  select(Quarter, `Shot Attempts` = Attempts_Str, Goals = Goals_Str, `Shooting \\%` = Pct_Formatted) %>%
+  pivot_longer(cols = -Quarter, names_to = "Metric", values_to = "Value") %>%
+  pivot_wider(names_from = Quarter, values_from = Value)
+
+# Formatting for Display (Sorting Rows)
+shooting_summary_display <- shooting_summary_final %>%
+  mutate(Metric_Order = case_when(
+    Metric == "Shot Attempts" ~ 1,
+    Metric == "Goals" ~ 2,
+    Metric == "Shooting \\%" ~ 3
+  )) %>%
+  arrange(Metric_Order) %>%
+  select(-Metric_Order)
+
+kable(shooting_summary_display, 
+      booktabs = TRUE, 
+      escape = FALSE, # Required for colors
+      caption = "Singapore Shooting Summary (Overall)") %>%
+  kable_styling(latex_options = c("hold_position"), full_width = FALSE) %>% # Removed striped
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE)
+
+# ------------------------------------------------------------------------------
+# 1B. PER MATCH SUMMARY (vs Opponents)
+# ------------------------------------------------------------------------------
+per_match_summary <- data %>%
+  filter(Row == "SGP Shot") %>%
+  separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+  mutate(`Shot Outcome` = str_trim(`Shot Outcome`)) %>%
+  # Create Short Opponent Names
+  mutate(Opponent_Short = case_when(
+  str_detect(Opponent, "AANA Dragons \\(Day 1\\)") ~ "vs AANA Dragons (Day 1)",
+  str_detect(Opponent, "AANA Dragons \\(Day 2\\)") ~ "vs AANA Dragons (Day 2)",
+  str_detect(Opponent, "AANA Dragons \\(Day 3\\)") ~ "vs AANA Dragons (Day 3)",
+  TRUE ~ Opponent
+  )) %>%
+  group_by(Opponent_Short) %>%
+  summarise(
+    Attempts = n(),
+    Goals = sum(str_detect(`Shot Outcome`, "Goal"), na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    `Shooting %` = ifelse(Attempts > 0, Goals / Attempts, 0)
+  ) %>%
+  
+  # --- APPLY COLOR LOGIC ---
+  rowwise() %>%
+  mutate(
+    Attempts_Str = as.character(Attempts),
+    Goals_Str = as.character(Goals),
+    Pct_Formatted = format_kpi(`Shooting %`, is_percent = TRUE)
+  ) %>%
+  ungroup() %>%
+  
+  # Pivot to Wide Format
+  select(Opponent_Short, `Shot Attempts` = Attempts_Str, Goals = Goals_Str, `Shooting \\%` = Pct_Formatted) %>%
+  pivot_longer(cols = -Opponent_Short, names_to = "Metric", values_to = "Value") %>%
+  pivot_wider(names_from = Opponent_Short, values_from = Value) %>%
+  
+  # Sorting Rows
+  mutate(Metric_Order = case_when(
+    Metric == "Shot Attempts" ~ 1,
+    Metric == "Goals" ~ 2,
+    Metric == "Shooting \\%" ~ 3
+  )) %>%
+  arrange(Metric_Order) %>%
+  select(-Metric_Order) %>%
+  
+  # --- ENFORCE CHRONOLOGICAL ORDER ---
+  select(Metric, any_of(chrono_order))
+
+kable(per_match_summary, 
+      booktabs = TRUE, 
+      escape = FALSE,
+      caption = "Singapore Shooting Summary (Per Match)") %>%
+  kable_styling(latex_options = c("hold_position"), full_width = FALSE) %>% # Removed striped
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE)
+
+# ------------------------------------------------------------------------------
+# 2. SHOOTING BY POSITION (GA/GS Breakdown - Transposed Layout)
+# ------------------------------------------------------------------------------
+
+# A. Prepare Data (Q1-Q4)
+shooting_pos_qtr <- data %>%
+  filter(Row == "SGP Shot") %>%
+  separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+  mutate(`Shot Outcome` = str_trim(`Shot Outcome`)) %>%
+  filter(!is.na(`Shooter Position`) & `Shooter Position` != "") %>%
+  group_by(Quarter, `Shooter Position`) %>%
+  summarise(
+    Attempts = n(),
+    Goals = sum(str_detect(`Shot Outcome`, "Goal"), na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  complete(Quarter = c("Q1", "Q2", "Q3", "Q4"), `Shooter Position` = c("GA", "GS"), fill = list(Attempts = 0, Goals = 0))
+
+# B. Calculate Totals
+shooting_pos_total <- shooting_pos_qtr %>%
+  group_by(`Shooter Position`) %>%
+  summarise(
+    Quarter = "Total",
+    Attempts = sum(Attempts),
+    Goals = sum(Goals),
+    .groups = "drop"
+  )
+
+# C. Bind and Calculate %
+shooting_pos_combined <- bind_rows(shooting_pos_qtr, shooting_pos_total) %>%
+  mutate(
+    `Shooting %` = ifelse(Attempts > 0, Goals / Attempts, 0)
+  )
+
+# D. Format Values BEFORE Pivoting
+formatted_long <- shooting_pos_combined %>%
+  rowwise() %>%
+  mutate(
+    Attempts_Str = as.character(Attempts),
+    Goals_Str = as.character(Goals),
+    Pct_Formatted = format_kpi(`Shooting %`, is_percent = TRUE)
+  ) %>%
+  ungroup() %>%
+  
+  # Rename columns to match desired row names (including escaped %)
+  select(Quarter, `Shooter Position`, `Shot Attempts` = Attempts_Str, Goals = Goals_Str, `Shooting \\%` = Pct_Formatted) %>%
+  pivot_longer(cols = c(`Shot Attempts`, Goals, `Shooting \\%`), names_to = "Metric", values_to = "Value")
+
+# E. Pivot to Wide Format
+# Columns will become: GA_Q1, GA_Q2... GS_Total
+pos_wide <- formatted_long %>%
+  unite("Pos_Qtr", `Shooter Position`, Quarter, sep = "_") %>%
+  select(Metric, Pos_Qtr, Value) %>%
+  pivot_wider(names_from = Pos_Qtr, values_from = Value)
+
+# F. Clean Up Rows (Ordering)
+pos_final <- pos_wide %>%
+  mutate(
+    Metric_Order = case_when(
+      Metric == "Shot Attempts" ~ 1,
+      Metric == "Goals" ~ 2,
+      Metric == "Shooting \\%" ~ 3,
+      TRUE ~ 4
+    )
+  ) %>%
+  arrange(Metric_Order) %>%
+  select(-Metric_Order)
+
+# G. Select Columns in Specific Order (GA first, then GS)
+desired_order <- c("Metric", 
+                   "GA_Q1", "GA_Q2", "GA_Q3", "GA_Q4", "GA_Total",
+                   "GS_Q1", "GS_Q2", "GS_Q3", "GS_Q4", "GS_Total")
+
+# Filter to only keep columns that actually exist (safe selection)
+existing_cols <- intersect(desired_order, names(pos_final))
+pos_final <- pos_final %>% select(all_of(existing_cols))
+
+# H. Render Table
+kable(pos_final, 
+      booktabs = TRUE, 
+      escape = FALSE,
+      col.names = c("Metric", "Q1", "Q2", "Q3", "Q4", "Total", "Q1", "Q2", "Q3", "Q4", "Total"),
+      caption = "Shooting Performance by Position (Overall)") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down"), full_width = FALSE) %>% # Removed striped
+  # Add the spanning headers: 1 blank for Metric, 5 for GA, 5 for GS
+  add_header_above(c(" " = 1, "Goal Attack (GA)" = 5, "Goal Shooter (GS)" = 5), bold = TRUE) %>%
+  column_spec(1, bold = TRUE) %>% 
+  column_spec(c(6, 11), bold = TRUE, border_left = TRUE) %>% # Bold/Border the Total columns
+  row_spec(0, bold = TRUE)
+
+# # ------------------------------------------------------------------------------
+# # 2. SHOOTING BY POSITION (AGGREGATED)
+# # ------------------------------------------------------------------------------
+# shooting_by_pos <- data %>%
+#   filter(Row == "SGP Shot") %>%
+#   separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+#   mutate(`Shot Outcome` = str_trim(`Shot Outcome`)) %>%
+#   filter(!is.na(Player) & Player != "") %>%
+#   group_by(Player, `Shooter Position`) %>%
+#   summarise(
+#     Goals = sum(str_detect(`Shot Outcome`, "Goal"), na.rm = TRUE),
+#     Attempts = n(),
+#     .groups = "drop"
+#   ) %>%
+#   mutate(
+#     `Percentage` = ifelse(Attempts > 0, Goals/Attempts, 0)
+#   )
+# 
+# shooting_display <- shooting_by_pos %>%
+#   mutate(
+#     Percentage_fmt = paste0(round(Percentage * 100), "%")
+#   ) %>%
+#   select(Player, Position = `Shooter Position`, Goals, Attempts, `Percentage` = Percentage_fmt) %>%
+#   arrange(Player, Position)
+# 
+# kable(shooting_display, 
+#       booktabs = TRUE, 
+#       caption = "Shooting Performance by Position (Overall)") %>%
+#   kable_styling(latex_options = c("striped", "hold_position"), full_width = FALSE) %>%
+#   row_spec(0, bold = TRUE)
+
+
+# ------------------------------------------------------------------------------
+# 3. SHOOTING HEATMAP VISUALIZATION (Flipped: Curve at Bottom)
+# ------------------------------------------------------------------------------
+
+# --- A. GEOMETRY HELPERS ---
+# Using x=r*sin(theta), y=r*cos(theta)
+arc_points <- function(r, start, end, n = 50) {
+  tibble(
+    theta = seq(start, end, length.out = n),
+    x = r * sin(theta),  
+    y = r * cos(theta)   
+  )
+}
+
+# Generate Bottom Semi-Circle Arcs (pi/2 to 3pi/2)
+circle_df <- function(r, n = 200) {
+  tibble(
+    angle = seq(pi/2, 3*pi/2, length.out = n),
+    x = r * sin(angle),
+    y = r * cos(angle)
+  )
+}
+
+# --- B. DEFINE ZONES (Bottom Half Orientation) ---
+# Right Zone: pi/2 to 5pi/6 (90 to 150 deg) -> Positive X
+# Middle Zone: 5pi/6 to 7pi/6 (150 to 210 deg) -> Centered on South
+# Left Zone: 7pi/6 to 3pi/2 (210 to 270 deg) -> Negative X
+
+wedge_polys <- bind_rows(
+  # Inner Middle
+  { inner <- arc_points(0, 5*pi/6, 7*pi/6); outer <- arc_points(3.0, 7*pi/6, 5*pi/6); bind_rows(inner, outer) %>% mutate(shot_area = "Inner Middle") },
+  # Outer Middle
+  { inner <- arc_points(3.0, 5*pi/6, 7*pi/6); outer <- arc_points(4.9, 7*pi/6, 5*pi/6); bind_rows(inner, outer) %>% mutate(shot_area = "Outer Middle") },
+  
+  # Inner Right (True Right side of plot)
+  { inner <- arc_points(0, pi/2, 5*pi/6); outer <- arc_points(3.0, 5*pi/6, pi/2); bind_rows(inner, outer) %>% mutate(shot_area = "Inner Right") },
+  # Outer Right (True Right side of plot)
+  { inner <- arc_points(3.0, pi/2, 5*pi/6); outer <- arc_points(4.9, 5*pi/6, pi/2); bind_rows(inner, outer) %>% mutate(shot_area = "Outer Right") },
+  
+  # Inner Left (True Left side of plot)
+  { inner <- arc_points(0, 7*pi/6, 3*pi/2); outer <- arc_points(3.0, 3*pi/2, 7*pi/6); bind_rows(inner, outer) %>% mutate(shot_area = "Inner Left") },
+  # Outer Left (True Left side of plot)
+  { inner <- arc_points(3.0, 7*pi/6, 3*pi/2); outer <- arc_points(4.9, 3*pi/2, 7*pi/6); bind_rows(inner, outer) %>% mutate(shot_area = "Outer Left") }
+)
+
+# --- C. PREPARE DATA ---
+zone_agg <- data %>%
+  filter(Row == "SGP Shot") %>%
+  separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+  mutate(`Shot Outcome` = str_trim(`Shot Outcome`)) %>%
+  separate_rows(`Shot Location`, sep = ",\\s*") %>% 
+  mutate(`Shot Location` = str_trim(`Shot Location`)) %>%
+  filter(`Shot Location` %in% c("Inner Middle", "Outer Middle", 
+                                "Inner Left", "Outer Left", 
+                                "Inner Right", "Outer Right")) %>%
+  rename(shot_area = `Shot Location`) %>%
+  group_by(shot_area) %>%
+  summarise(
+    Goals = sum(str_detect(`Shot Outcome`, "Goal"), na.rm = TRUE),
+    Attempts = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(pct = Goals / Attempts) %>%
+  # --- 3-TIER LOGIC CATEGORIZATION ---
+  mutate(
+    KPI_Tier = case_when(
+      pct >= 0.90 ~ ">= 90%",
+      pct >= 0.80 ~ "80% - 89%",
+      TRUE        ~ "< 80%"
+    )
+  ) %>%
+  mutate(KPI_Tier = factor(KPI_Tier, levels = c(">= 90%", "80% - 89%", "< 80%")))
+
+# --- D. JOIN DATA TO GEOMETRY ---
+zone_heat <- zone_agg %>%
+  right_join(wedge_polys, by = "shot_area")
+
+# --- E. CREATE LABEL DATA SEPARATELY ---
+label_data <- zone_heat %>%
+  group_by(shot_area) %>%
+  summarise(
+    cx = mean(x),
+    cy = mean(y),
+    pct = first(pct),
+    goals = first(Goals),
+    attempts = first(Attempts)
+  ) %>%
+  filter(!is.na(pct)) %>%
+  # REMOVED FILTER: Now showing labels for ALL zones (Inner + Outer)
+  mutate(
+    label_text = paste0(scales::percent(pct, accuracy = 1), "\n(", goals, "/", attempts, ")")
+  )
+
+# --- F. PLOT ---
+ggplot() +
+  # Goal circle outlines
+  geom_path(data = circle_df(4.9), aes(x, y), colour = "grey40", linewidth = 1) +
+  geom_path(data = circle_df(3.0), aes(x, y), linetype = "dashed", colour = "grey60") +
+  
+  # Filled wedges
+  geom_polygon(
+    data = zone_heat,
+    aes(x = x, y = y, group = shot_area, fill = KPI_Tier),
+    colour = "white", linewidth = 0.5
+  ) +
+  
+  # Labels
+  geom_text(
+    data = label_data,
+    aes(x = cx, y = cy, label = label_text),
+    fontface = "bold", color = "black", size = 3.5
+  ) +
+  
+  # Scales and Theme
+  # Y-limit changed to negative to show bottom half
+  coord_fixed(ylim = c(-5.2, 0), xlim = c(-5, 5)) +
+  
+  scale_fill_manual(
+    values = c(
+      ">= 90%"      = "#57BB8A",  # Green
+      "80% - 89%"   = "#F4B400",  # Yellow
+      "< 80%"       = "#E67C73"   # Red
+    ),
+    na.value = "#DDDDDD",       
+    name = "Accuracy"
+  ) +
+  
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 12),
+    plot.margin = margin(10, 10, 10, 10)
+  ) +
+  labs(title = "Shooting Accuracy by Zone (Overall)")
+```
+
+\clearpage
+
+# OPPOSITION SHOOTING
+
+```{r opp_shooting_summary}
+# ------------------------------------------------------------------------------
+# 6. OPPONENT SHOOTING BY POSITION (GA/GS Breakdown)
+# ------------------------------------------------------------------------------
+
+# A. Prepare Data (Q1-Q4)
+# Filter for "OPP Shot" instead of "SGP Shot"
+opp_shooting_pos_qtr <- data %>%
+  filter(Row == "OPP Shot") %>% 
+  separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+  mutate(`Shot Outcome` = str_trim(`Shot Outcome`)) %>%
+  filter(!is.na(`Shooter Position`) & `Shooter Position` != "") %>%
+  group_by(Quarter, `Shooter Position`) %>%
+  summarise(
+    Attempts = n(),
+    Goals = sum(str_detect(`Shot Outcome`, "Goal"), na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  complete(Quarter = c("Q1", "Q2", "Q3", "Q4"), `Shooter Position` = c("GA", "GS"), fill = list(Attempts = 0, Goals = 0))
+
+# B. Calculate Totals
+opp_shooting_pos_total <- opp_shooting_pos_qtr %>%
+  group_by(`Shooter Position`) %>%
+  summarise(
+    Quarter = "Total",
+    Attempts = sum(Attempts),
+    Goals = sum(Goals),
+    .groups = "drop"
+  )
+
+# C. Bind and Calculate %
+opp_shooting_pos_combined <- bind_rows(opp_shooting_pos_qtr, opp_shooting_pos_total) %>%
+  mutate(
+    `Shooting %` = ifelse(Attempts > 0, Goals / Attempts, 0)
+  )
+
+# D. Format Values BEFORE Pivoting
+formatted_long_opp <- opp_shooting_pos_combined %>%
+  pivot_longer(cols = c(Attempts, Goals, `Shooting %`), names_to = "Metric", values_to = "Numeric_Value") %>%
+  mutate(
+    Formatted_Value = case_when(
+      Metric == "Shooting %" ~ paste0(round(Numeric_Value * 100), "%"),
+      TRUE ~ as.character(round(Numeric_Value))
+    )
+  )
+
+# E. Pivot to Wide Format
+# Columns will become: GA_Q1, GA_Q2... GS_Total
+pos_wide_opp <- formatted_long_opp %>%
+  unite("Pos_Qtr", `Shooter Position`, Quarter, sep = "_") %>%
+  select(Metric, Pos_Qtr, Formatted_Value) %>%
+  pivot_wider(names_from = Pos_Qtr, values_from = Formatted_Value)
+
+# F. Clean Up Rows (Ordering)
+pos_final_opp <- pos_wide_opp %>%
+  mutate(
+    Metric_Order = case_when(
+      Metric == "Attempts" ~ 1,
+      Metric == "Goals" ~ 2,
+      Metric == "Shooting %" ~ 3,
+      TRUE ~ 4
+    )
+  ) %>%
+  arrange(Metric_Order) %>%
+  select(-Metric_Order) %>%
+  mutate(Metric = case_when(
+    Metric == "Attempts" ~ "Shot Attempts",
+    TRUE ~ Metric
+  ))
+
+# G. Select Columns in Specific Order
+desired_order <- c("Metric", 
+                   "GA_Q1", "GA_Q2", "GA_Q3", "GA_Q4", "GA_Total",
+                   "GS_Q1", "GS_Q2", "GS_Q3", "GS_Q4", "GS_Total")
+
+# Filter to only keep columns that actually exist
+existing_cols <- intersect(desired_order, names(pos_final_opp))
+pos_final_opp <- pos_final_opp %>% select(all_of(existing_cols))
+
+# H. Render Table
+kable(pos_final_opp, 
+      booktabs = TRUE, 
+      col.names = c("Metric", "Q1", "Q2", "Q3", "Q4", "Total", "Q1", "Q2", "Q3", "Q4", "Total"),
+      caption = "Opponent Shooting Performance by Position (Overall)") %>%
+  kable_styling(latex_options = c("striped", "hold_position", "scale_down"), full_width = FALSE) %>%
+  # Add the spanning headers: 1 blank for Metric, 5 for GA, 5 for GS
+  add_header_above(c(" " = 1, "Opponent Goal Attack (GA)" = 5, "Opponent Goal Shooter (GS)" = 5), bold = TRUE) %>%
+  column_spec(1, bold = TRUE) %>% 
+  column_spec(c(6, 11), bold = TRUE, border_left = TRUE) %>% # Bold/Border the Total columns
+  row_spec(0, bold = TRUE)
+```
+
+\clearpage
+
+# SGP PLAYER SHOOTING STATS
+
+KPI Summary
+
+- Green: ≥ 90% accuracy
+
+- Yellow: 80%-89% accuracy
+
+- Red: \< 80% accuracy
+
+\vspace{10mm}
+
+```{r sgp_player_shooting_heatmap, fig.height=6.5, fig.width=6.5}
+# ------------------------------------------------------------------------------
+# 7. PLAYER SHOOTING HEATMAPS (Flipped: Curve at Bottom)
+# ------------------------------------------------------------------------------
+
+# --- A. DEFINE SEARCH PATTERNS ---
+shooter_patterns <- c("Amandeep", "Kai Wei", "Pei Shan", "Wei Ping", 
+                      "Sara", "Charlotte", "Zulfa")
+
+# --- B. GEOMETRY HELPERS ---
+arc_points <- function(r, start, end, n = 50) {
+  tibble(
+    theta = seq(start, end, length.out = n),
+    x = r * sin(theta),  
+    y = r * cos(theta)   
+  )
+}
+
+circle_df <- function(r, n = 200) {
+  tibble(
+    angle = seq(pi/2, 3*pi/2, length.out = n),
+    x = r * sin(angle),
+    y = r * cos(angle)
+  )
+}
+
+# --- C. DEFINE ZONES (Bottom Half Orientation) ---
+wedge_polys <- bind_rows(
+  { inner <- arc_points(0, 5*pi/6, 7*pi/6); outer <- arc_points(3.0, 7*pi/6, 5*pi/6); bind_rows(inner, outer) %>% mutate(shot_area = "Inner Middle") },
+  { inner <- arc_points(3.0, 5*pi/6, 7*pi/6); outer <- arc_points(4.9, 7*pi/6, 5*pi/6); bind_rows(inner, outer) %>% mutate(shot_area = "Outer Middle") },
+  { inner <- arc_points(0, pi/2, 5*pi/6); outer <- arc_points(3.0, 5*pi/6, pi/2); bind_rows(inner, outer) %>% mutate(shot_area = "Inner Right") },
+  { inner <- arc_points(3.0, pi/2, 5*pi/6); outer <- arc_points(4.9, 5*pi/6, pi/2); bind_rows(inner, outer) %>% mutate(shot_area = "Outer Right") },
+  { inner <- arc_points(0, 7*pi/6, 3*pi/2); outer <- arc_points(3.0, 3*pi/2, 7*pi/6); bind_rows(inner, outer) %>% mutate(shot_area = "Inner Left") },
+  { inner <- arc_points(3.0, 7*pi/6, 3*pi/2); outer <- arc_points(4.9, 3*pi/2, 7*pi/6); bind_rows(inner, outer) %>% mutate(shot_area = "Outer Left") }
+)
+
+# --- D. FUNCTION TO GENERATE PLOT FOR SINGLE PLAYER ---
+generate_player_plot <- function(player_pattern) {
+  
+  # 1. Filter Data for specific player
+  player_data <- data %>%
+    filter(Row == "SGP Shot") %>%
+    separate_rows(`Shot Outcome`, sep = ",\\s*") %>%
+    mutate(`Shot Outcome` = str_trim(`Shot Outcome`)) %>%
+    separate_rows(`Shot Location`, sep = ",\\s*") %>% 
+    mutate(`Shot Location` = str_trim(`Shot Location`)) %>%
+    filter(str_detect(Player, player_pattern)) %>%
+    filter(`Shot Location` %in% c("Inner Middle", "Outer Middle", 
+                                  "Inner Left", "Outer Left", 
+                                  "Inner Right", "Outer Right"))
+  
+  # Return NULL if no shots for this player
+  if(nrow(player_data) == 0) {
+    return(NULL)
+  }
+  
+  # Continue with data processing
+  player_data <- player_data %>%
+    rename(shot_area = `Shot Location`) %>%
+    group_by(shot_area) %>%
+    summarise(
+      Goals = sum(str_detect(`Shot Outcome`, "Goal"), na.rm = TRUE),
+      Attempts = n(),
+      .groups = "drop"
+    ) %>%
+    mutate(pct = Goals / Attempts) %>%
+    mutate(
+      KPI_Tier = case_when(
+        pct >= 0.90 ~ ">= 90%",
+        pct >= 0.80 ~ "80% - 89%",
+        TRUE        ~ "< 80%"
+      )
+    ) %>%
+    mutate(KPI_Tier = factor(KPI_Tier, levels = c(">= 90%", "80% - 89%", "< 80%")))
+
+  # Calculate overall stats
+  total_goals <- sum(player_data$Goals)
+  total_attempts <- sum(player_data$Attempts)
+  overall_pct <- ifelse(total_attempts > 0, total_goals / total_attempts, 0)
+  
+  subtitle_text <- paste0("Overall: ", total_goals, "/", total_attempts, " (", round(overall_pct * 100), "%)")
+
+  # Join with Geometry
+  plot_data <- player_data %>%
+    right_join(wedge_polys, by = "shot_area")
+
+  # Create Labels
+  label_data <- plot_data %>%
+    group_by(shot_area) %>%
+    summarise(
+      cx = mean(x),
+      cy = mean(y),
+      pct = first(pct),
+      goals = first(Goals),
+      attempts = first(Attempts)
+    ) %>%
+    filter(!is.na(attempts) & attempts > 0) %>% 
+    mutate(
+      label_text = paste0(scales::percent(pct, accuracy = 1), "\n(", goals, "/", attempts, ")")
+    )
+    
+  # Get Full Player Name for Title
+  full_name <- data %>% 
+    filter(str_detect(Player, player_pattern)) %>% 
+    slice(1) %>% pull(Player)
+  
+  if(length(full_name) == 0) full_name <- player_pattern
+
+  # Create Plot
+  p <- ggplot() +
+    geom_path(data = circle_df(4.9), aes(x, y), colour = "grey40", linewidth = 1) +
+    geom_path(data = circle_df(3.0), aes(x, y), linetype = "dashed", colour = "grey60") +
+    geom_polygon(
+      data = plot_data,
+      aes(x = x, y = y, group = shot_area, fill = KPI_Tier),
+      colour = "white", linewidth = 0.5
+    ) +
+    geom_text(
+      data = label_data,
+      aes(x = cx, y = cy, label = label_text),
+      fontface = "bold", color = "black", size = 2.8 
+    ) +
+    coord_fixed(ylim = c(-5.2, 0), xlim = c(-5, 5)) +
+    scale_fill_manual(
+      values = c(">= 90%" = "#57BB8A", "80% - 89%" = "#F4B400", "< 80%" = "#E67C73"),
+      na.value = "#DDDDDD", drop = FALSE, name = "Accuracy"
+    ) +
+    theme_void() +
+    theme(
+      legend.position = "none", 
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 11),
+      plot.subtitle = element_text(hjust = 0.5, size = 10, face = "bold", color = "grey30"),
+      plot.margin = margin(t = 0, r = 10, b = 10, l = 10)
+    ) +
+    labs(
+      title = full_name,
+      subtitle = subtitle_text
+    )
+    
+  return(p)
+}
+
+# --- E. GENERATE PLOTS ---
+plot_list <<- map(shooter_patterns, generate_player_plot) %>% compact()
+
+# --- F. DISPLAY FIRST 4 PLOTS ---
+if(length(plot_list) > 0) {
+  first_four <- plot_list[1:min(4, length(plot_list))]
+  grid.arrange(grobs = first_four, ncol = 2)
+} else {
+  cat("No shooting data available for any players.")
+}
+```
+
+\clearpage
+
+```{r sgp_player_shooting_continued, fig.height=6.5, fig.width=6.5}
+# Display remaining plots if more than 4
+if(exists("plot_list") && length(plot_list) > 4) {
+  remaining_plots <- plot_list[5:length(plot_list)]
+  grid.arrange(grobs = remaining_plots, ncol = 2)
+}
+```
+
+\clearpage
+
+# SGP FEEDS SUMMARY
+
+KPI Summary: At least 90% accuracy for Circle Edge
+
+```{r sgp_feeds_summary, echo=FALSE, message=FALSE, warning=FALSE}
+# 1. HELPER FUNCTION: 3-TIER FORMATTING
+# ------------------------------------------------------------------------------
+format_kpi_cell <- function(val, text_label) {
+  # Round to integer for logic consistency
+  pct_int <- round(val * 100)
+  
+  # 3-Tier Color Logic
+  color_bg <- ifelse(pct_int >= 90, "#57BB8A",        # Green (KPI Met)
+               ifelse(pct_int >= 80, "#F4B400",       # Yellow
+                                    "#E67C73"))       # Red
+                                    
+  # cell_spec escapes special chars (like %) by default, which is what we want here
+  cell_spec(text_label, "latex", color = "white", bold = TRUE, background = color_bg)
+}
+
+# 2. DATA PREPARATION
+# ------------------------------------------------------------------------------
+# Filter for SGP Feeds and expand rows
+feeds_clean <- data %>%
+  filter(str_detect(Row, "SGP Feed")) %>%
+  separate_rows(`Feed Location`, `Feed Success`, sep = ",\\s*") %>%
+  mutate(across(c(`Feed Location`, `Feed Success`), str_trim)) %>%
+  filter(`Feed Location` %in% c("Circle Edge", "Inside Circle", "Outside Circle"))
+
+# 3. CALCULATE METRICS (OVERALL TABLE)
+# ------------------------------------------------------------------------------
+feed_stats <- feeds_clean %>%
+  group_by(`Feed Location`, Quarter) %>%
+  summarise(
+    Attempts = n(),
+    Successes = sum(`Feed Success` == "YES", na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  complete(
+    `Feed Location` = c("Circle Edge", "Inside Circle", "Outside Circle"), 
+    Quarter = c("Q1", "Q2", "Q3", "Q4"), 
+    fill = list(Attempts = 0, Successes = 0)
+  )
+
+# Calculate Totals
+feed_totals <- feed_stats %>%
+  group_by(`Feed Location`) %>%
+  summarise(
+    Quarter = "Total",
+    Attempts = sum(Attempts),
+    Successes = sum(Successes),
+    .groups = "drop"
+  )
+
+# Combine and Format
+final_feed_table <- bind_rows(feed_stats, feed_totals) %>%
+  mutate(
+    Pct = ifelse(Attempts > 0, Successes / Attempts, 0),
+    Count_Str = as.character(Successes),
+    
+    # --- CONDITIONAL FORMATTING LOGIC ---
+    Acc_Str = case_when(
+      Attempts == 0 ~ "-",
+      # Only apply color if Location is "Circle Edge"
+      `Feed Location` == "Circle Edge" ~ format_kpi_cell(Pct, paste0(round(Pct * 100), "%")),
+      # Otherwise, return plain text (escaped manually for LaTeX because it skips cell_spec)
+      TRUE ~ paste0(round(Pct * 100), "\\%")
+    )
+  ) %>%
+  select(`Feed Location`, Quarter, Count_Str, Acc_Str) %>%
+  pivot_wider(
+    names_from = Quarter,
+    values_from = c(Count_Str, Acc_Str),
+    names_glue = "{Quarter}_{.value}"
+  ) %>%
+  select(
+    `Feed Location`,
+    Q1_Count_Str, Q1_Acc_Str,
+    Q2_Count_Str, Q2_Acc_Str,
+    Q3_Count_Str, Q3_Acc_Str,
+    Q4_Count_Str, Q4_Acc_Str,
+    Total_Count_Str, Total_Acc_Str
+  ) %>%
+  mutate(`Feed Location` = factor(`Feed Location`, levels = c("Circle Edge", "Inside Circle", "Outside Circle"))) %>%
+  arrange(`Feed Location`)
+
+# 4. RENDER TABLE 1 (OVERALL)
+# ------------------------------------------------------------------------------
+# Define Headers (Using % symbol)
+header_names <- c(
+  "Successful Feed(s)", 
+  "Q1", "Q1 \\%", 
+  "Q2", "Q2 \\%", 
+  "Q3", "Q3 \\%", 
+  "Q4", "Q4 \\%", 
+  "Total", "Total \\%"
+)
+
+kable(final_feed_table, 
+      format = "latex", 
+      booktabs = TRUE, 
+      escape = FALSE,
+      col.names = header_names,
+      caption = "SGP Feeds Summary") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  column_spec(1, bold = TRUE, width = "3cm") %>%
+  column_spec(2:11, latex_valign = "m") %>%
+  column_spec(11, bold = TRUE) %>%
+  row_spec(0, bold = TRUE)
+
+# ------------------------------------------------------------------------------
+# 5. TABLE 2: CIRCLE EDGE FEEDS BY MATCH (ORDERED & COLORED)
+# ------------------------------------------------------------------------------
+ce_feeds_by_match <- feeds_clean %>%
+  filter(`Feed Location` == "Circle Edge") %>%
+  mutate(Opponent_Short = case_when(
+    str_detect(Opponent, "AANA Dragons \\(Day 1\\)") ~ "vs AANA Dragons (Day 1)",
+    str_detect(Opponent, "AANA Dragons \\(Day 2\\)") ~ "vs AANA Dragons (Day 2)",
+    str_detect(Opponent, "AANA Dragons \\(Day 3\\)") ~ "vs AANA Dragons (Day 3)",
+    TRUE ~ Opponent
+  )) %>%
+  group_by(Opponent_Short) %>%
+  summarise(
+    Attempts = n(),
+    Successes = sum(`Feed Success` == "YES", na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    Accuracy = ifelse(Attempts > 0, Successes / Attempts, 0)
+  ) %>%
+  rowwise() %>%
+  mutate(
+    Accuracy_Fmt = format_kpi_cell(Accuracy, paste0(round(Accuracy * 100), "%"))
+  ) %>%
+  ungroup() %>%
+  select(
+    Match = Opponent_Short,
+    Attempts,
+    `Successful Feeds` = Successes,
+    `Accuracy (\\%)` = Accuracy_Fmt
+  ) %>%
+  mutate(Match = factor(Match, levels = c(
+    "vs AANA Dragons (Day 1)",
+    "vs AANA Dragons (Day 2)",
+    "vs AANA Dragons (Day 3)"
+  ))) %>%
+  arrange(Match)
+
+kable(
+  ce_feeds_by_match,
+  booktabs = TRUE,
+  escape = FALSE,
+  caption = "Circle Edge Feeds by Match"
+) %>%
+  kable_styling(latex_options = c("hold_position"), full_width = FALSE) %>%
+  column_spec(1, bold = TRUE) %>%
+  row_spec(0, bold = TRUE)
+```
+
+\clearpage
+
+# CENTRE PASS ATTACK SUMMARY
+
+KPI Summary
+
+- CPA: At least 80% conversion rate
+
+- DCPA: At least 75% conversion rate
+
+```{r cpa_summary, echo=FALSE, message=FALSE, warning=FALSE}
+# 1. HELPER FUNCTION: QUARTERLY BREAKDOWN
+# ------------------------------------------------------------------------------
+calc_cp_metrics <- function(df, row_filter, goal_keyword, prefix, use_color = TRUE) {
+  threshold <- ifelse(prefix == "DCPA", 0.75, 0.80)
+
+  df %>%
+    filter(Row == row_filter) %>%
+    group_by(Quarter) %>%
+    summarise(
+      Total_Possessions = n(),
+      Goals = sum(str_detect(`Shot Outcome`, goal_keyword), na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    complete(Quarter = c("Q1", "Q2", "Q3", "Q4"), fill = list(Total_Possessions = 0, Goals = 0)) %>%
+    bind_rows(summarise(., Quarter = "Total", Total_Possessions = sum(Total_Possessions), Goals = sum(Goals))) %>%
+    mutate(
+      Pct = ifelse(Total_Possessions > 0, Goals / Total_Possessions, 0),
+      Goals_Str = as.character(Goals),
+      Acc_Str = if (use_color) {
+        ifelse(
+          Total_Possessions == 0, "-",
+          {
+            color_bg <- ifelse(Pct >= threshold, "#57BB8A", "#E67C73")
+            cell_spec(paste0(round(Pct * 100), "%"), "latex", 
+                      color = "white", bold = TRUE, background = color_bg)
+          }
+        )
+      } else {
+        ifelse(Total_Possessions == 0, "-", paste0(round(Pct * 100), "\\%"))
+      }
+    ) %>%
+    select(Quarter, Goals_Str, Acc_Str) %>%
+    pivot_longer(cols = c(Goals_Str, Acc_Str), names_to = "Type", values_to = "Value") %>%
+    mutate(
+      Metric = case_when(
+        Type == "Goals_Str" ~ paste(prefix, "Goals"),
+        Type == "Acc_Str" ~ paste(prefix, "Conversion \\%")
+      )
+    ) %>%
+    select(Quarter, Metric, Value) %>%
+    pivot_wider(names_from = Quarter, values_from = Value)
+}
+
+# 2. HELPER FUNCTION: MATCH BREAKDOWN
+# ------------------------------------------------------------------------------
+calc_cp_match_metrics <- function(df, row_filter, goal_keyword, prefix) {
+  threshold <- ifelse(prefix == "DCPA", 0.75, 0.80)
+
+  df %>%
+    filter(Row == row_filter) %>%
+    # Create Opponent Short Names
+    mutate(Match = case_when(
+  str_detect(Opponent, "AANA Dragons \\(Day 1\\)") ~ "vs AANA Dragons (Day 1)",
+  str_detect(Opponent, "AANA Dragons \\(Day 2\\)") ~ "vs AANA Dragons (Day 2)",
+  str_detect(Opponent, "AANA Dragons \\(Day 3\\)") ~ "vs AANA Dragons (Day 3)",
+  TRUE ~ Opponent
+)) %>%
+    group_by(Match) %>%
+    summarise(
+      Total_Possessions = n(),
+      Goals = sum(str_detect(`Shot Outcome`, goal_keyword), na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Pct = ifelse(Total_Possessions > 0, Goals / Total_Possessions, 0),
+      Goals_Str = as.character(Goals),
+      Acc_Str = ifelse(
+        Total_Possessions == 0, "-",
+        {
+          color_bg <- ifelse(Pct >= threshold, "#57BB8A", "#E67C73")
+          cell_spec(paste0(round(Pct * 100), "%"), "latex", 
+                    color = "white", bold = TRUE, background = color_bg)
+        }
+      )
+    ) %>%
+    select(Match, Goals_Str, Acc_Str) %>%
+    pivot_longer(cols = c(Goals_Str, Acc_Str), names_to = "Type", values_to = "Value") %>%
+    mutate(
+      Metric = case_when(
+        Type == "Goals_Str" ~ paste(prefix, "Goals"),
+        Type == "Acc_Str" ~ paste(prefix, "Conversion \\%")
+      )
+    ) %>%
+    select(Match, Metric, Value) %>%
+    pivot_wider(names_from = Match, values_from = Value)
+}
+
+# 3. GENERATE TABLES
+# ------------------------------------------------------------------------------
+# Define Order
+chrono_order <- c(
+  "vs AANA Dragons (Day 1)",
+  "vs AANA Dragons (Day 2)",
+  "vs AANA Dragons (Day 3)"
+)
+
+# Table 1: Quarterly Summary
+sgp_cpa  <- calc_cp_metrics(data, "SGP CPA",  "SGP Goal", "CPA", use_color = TRUE)
+sgp_dcpa <- calc_cp_metrics(data, "SGP DCPA", "SGP Goal", "DCPA", use_color = TRUE)
+final_cpa_table <- bind_rows(sgp_cpa, sgp_dcpa)
+
+# Table 2: Match Summary
+sgp_cpa_match  <- calc_cp_match_metrics(data, "SGP CPA",  "SGP Goal", "CPA")
+sgp_dcpa_match <- calc_cp_match_metrics(data, "SGP DCPA", "SGP Goal", "DCPA")
+
+final_match_table <- bind_rows(sgp_cpa_match, sgp_dcpa_match) %>%
+  # --- FIX: ENFORCE CHRONOLOGICAL ORDER ---
+  select(Metric, any_of(chrono_order))
+
+# 4. RENDER TABLES
+# ------------------------------------------------------------------------------
+
+kable(final_cpa_table, 
+      booktabs = TRUE, 
+      escape = FALSE,
+      col.names = c("Metric", "Q1", "Q2", "Q3", "Q4", "Total"),
+      caption = "Centre Pass Attack Summary (Overall)") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  pack_rows(meta_team_name, 1, 4) %>%
+  column_spec(1, bold = TRUE, width = "5cm") %>%
+  column_spec(6, bold = TRUE) %>%
+  row_spec(0, bold = TRUE)
+
+kable(final_match_table, 
+      booktabs = TRUE, 
+      escape = FALSE,
+      caption = "Centre Pass Attack Summary (Per Match)") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  pack_rows(meta_team_name, 1, 4) %>%
+  column_spec(1, bold = TRUE, width = "5cm") %>%
+  row_spec(0, bold = TRUE)
+```
+
+\clearpage
+
+# SGP CENTRE PASS ATTACKING TENDENCIES
+
+```{r cpa_tendencies, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=10, fig.align='center'}
+
+# 1. DEFINE MAPS
+# ------------------------------------------------------------------------------
+map_phase1 <- tribble(
+  ~Location,               ~x, ~y, ~Label,
+  "Center Left Attack",     1,  2, "C Left (A)",
+  "Center Mid Attack",      2,  2, "C Mid (A)",
+  "Center Right Attack",    3,  2, "C Right (A)",
+  "Center Left Defense",    1,  1, "C Left (D)",
+  "Center Mid Defense",     2,  1, "C Mid (D)",
+  "Center Right Defense",   3,  1, "C Right (D)"
+)
+
+map_phase2 <- tribble(
+  ~Location,               ~x, ~y, ~Label,
+  "Center Left Attack",     1,  2, "C Left (A)",
+  "Center Mid Attack",      2,  2, "C Mid (A)",
+  "Center Right Attack",    3,  2, "C Right (A)",
+  "Center Left Defense",    1,  1, "C Left (D)",
+  "Center Mid Defense",     2,  1, "C Mid (D)",
+  "Center Right Defense",   3,  1, "C Right (D)",
+  "Attacking Left",         1,  3, "Att Left",
+  "Attacking Middle",       2,  3, "Att Mid",
+  "Attacking Right",        3,  3, "Att Right",
+  "Attacking Left Pocket",  1,  4, "AL Pocket",
+  "Attacking D",            2,  4, "Att Circle",
+  "Attacking Right Pocket", 3,  4, "AR Pocket"
+)
+
+# 2. HELPER FUNCTIONS
+# ------------------------------------------------------------------------------
+
+find_col <- function(df, pattern) {
+  match <- names(df)[str_detect(names(df), regex(pattern, ignore_case = TRUE))]
+  if(length(match) > 0) return(match[1]) 
+  return(NULL) 
+}
+
+get_loc_counts <- function(df, pass_pattern, map_df) {
+  target_col <- find_col(df, pass_pattern)
+  
+  if (is.null(target_col)) {
+    return(map_df %>% mutate(Count = 0))
+  }
+  
+  df %>%
+    filter(Row == "SGP CPA") %>%
+    separate_rows(!!sym(target_col), sep = ",\\s*") %>%
+    mutate(Location = str_trim(!!sym(target_col))) %>%
+    filter(Location %in% map_df$Location) %>%
+    group_by(Location) %>%
+    summarise(Count = n(), .groups = "drop") %>%
+    right_join(map_df, by = "Location") %>%
+    replace_na(list(Count = 0))
+}
+
+get_receiver_stats <- function(df, pass_pattern, recv_pattern, target_recvs) {
+  pass_col <- find_col(df, pass_pattern)
+  recv_col <- find_col(df, recv_pattern)
+  
+  if (is.null(recv_col)) {
+    return(tibble(Receiver = target_recvs, Count = 0))
+  }
+
+  stats <- df %>%
+    filter(Row == "SGP CPA") %>%
+    select(Receiver_Raw = !!sym(recv_col)) %>%
+    separate_rows(Receiver_Raw, sep = ",\\s*") %>%
+    mutate(Receiver = str_trim(Receiver_Raw)) %>%
+    mutate(Receiver = ifelse(is.na(Receiver) | Receiver == "", "Not taken", Receiver)) %>%
+    group_by(Receiver) %>%
+    summarise(Count = n(), .groups = "drop")
+  
+  tibble(Receiver = target_recvs) %>%
+    left_join(stats, by = "Receiver") %>%
+    replace_na(list(Count = 0))
+}
+
+# Function to Draw Heatmap (Green Theme)
+draw_cpa_heatmap <- function(plot_data, title_text) {
+  
+  plot_data_ranked <- plot_data %>%
+    mutate(
+      Rank = dense_rank(desc(Count)),
+      Highlight = case_when(
+        Count == 0 ~ "Other", 
+        Rank == 1 ~ "Rank1",
+        Rank == 2 ~ "Rank2",
+        Rank == 3 ~ "Rank3",
+        TRUE ~ "Other"
+      ),
+      Highlight = factor(Highlight, levels = c("Rank1", "Rank2", "Rank3", "Other"))
+    )
+
+  # Green Palette
+  highlight_colors <- c(
+    "Rank1" = "#005a32",   # Kelly Green
+    "Rank2" = "#41ab5d",   # Grass Green
+    "Rank3" = "#addd8e",   # Pale Green
+    "Other" = "#e6f8d9"    # Very Light Green
+  )
+
+  ggplot(plot_data_ranked, aes(x = x, y = y, fill = Highlight)) +
+    geom_tile(color = "black", size = 0.5) +
+    
+    geom_text(aes(label = ifelse(Count > 0, Count, ""), 
+                  color = Highlight == "Rank1" | Highlight == "Rank2"), 
+              fontface = "bold", size = 5) +
+    
+    scale_color_manual(values = c("FALSE" = "black", "TRUE" = "white"), guide = "none") +
+    
+    geom_text(aes(label = Label), 
+              color = "grey30", size = 3, vjust = 2.5) +
+    
+    scale_fill_manual(values = highlight_colors) +
+    coord_fixed(ratio = 1) +
+    theme_void() +
+    labs(title = title_text) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", margin = margin(b=10)),
+      legend.position = "none"
+    )
+}
+
+# Function to Draw Table (TOTAL ROW REMOVED)
+draw_cpa_table <- function(table_data) {
+  # No bind_rows here anymore
+  
+  tt <- ttheme_minimal(
+    core = list(fg_params = list(hjust = 0, x = 0.1)),
+    colhead = list(fg_params = list(hjust = 0, x = 0.1, fontface = "bold"))
+  )
+  tableGrob(table_data, rows = NULL, theme = tt)
+}
+
+# 3. PREPARE DATA
+# ------------------------------------------------------------------------------
+data_p1_loc <- get_loc_counts(data, "1st.*Pass", map_phase1)
+targets_p1 <- c("GA", "WA", "GD", "WD", "Not Taken")
+data_p1_recv <- get_receiver_stats(data, "1st.*Pass", "1st.*Receiver", targets_p1)
+
+data_p2_loc <- get_loc_counts(data, "2nd.*Pass", map_phase2)
+targets_p2 <- c("GS", "GA", "WA", "C", "WD", "GD", "GK", "Not Taken")
+data_p2_recv <- get_receiver_stats(data, "2nd.*Pass", "2nd.*Receiver", targets_p2)
+
+# 4. GENERATE PLOTS & RENDER
+# ------------------------------------------------------------------------------
+plot_p1 <- draw_cpa_heatmap(data_p1_loc, "1st Phase Distribution")
+tbl_p1  <- draw_cpa_table(data_p1_recv)
+
+plot_p2 <- draw_cpa_heatmap(data_p2_loc, "2nd Phase Distribution")
+tbl_p2  <- draw_cpa_table(data_p2_recv)
+
+grid.arrange(plot_p1, tbl_p1, ncol = 2, widths = c(1.5, 1))
+grid.arrange(plot_p2, tbl_p2, ncol = 2, widths = c(1.5, 1))
+```
+
+```{r cpa_combo_ranking, echo=FALSE, message=FALSE, warning=FALSE}
+# 1. HELPER FUNCTION (Reuse robust column finder)
+# ------------------------------------------------------------------------------
+find_col <- function(df, pattern) {
+  match <- names(df)[str_detect(names(df), regex(pattern, ignore_case = TRUE))]
+  if(length(match) > 0) return(match[1]) 
+  return(NULL) 
+}
+
+# 2. PROCESS DATA
+# ------------------------------------------------------------------------------
+# Identify dynamic column names
+col_recv1 <- find_col(data, "1st.*Receiver")
+col_recv2 <- find_col(data, "2nd.*Receiver")
+
+if (!is.null(col_recv1) & !is.null(col_recv2)) {
+  
+  cpa_combos <- data %>%
+    filter(Row == "SGP CPA") %>%
+    # Select only relevant columns
+    select(Recv1_Raw = !!sym(col_recv1), Recv2_Raw = !!sym(col_recv2)) %>%
+    
+    # Robustness: Handle comma-separated values (Expand rows)
+    separate_rows(Recv1_Raw, sep = ",\\s*") %>%
+    separate_rows(Recv2_Raw, sep = ",\\s*") %>%
+    
+    # Clean text
+    mutate(
+      Recv1 = str_trim(Recv1_Raw),
+      Recv2 = str_trim(Recv2_Raw)
+    ) %>%
+    
+    # Filter out empty/missing data to focus on valid combos
+    filter(Recv1 != "", !is.na(Recv1)) %>%
+    filter(Recv2 != "", !is.na(Recv2)) %>%
+    
+    # Create Combination String
+    mutate(Combination = paste(Recv1, "-", Recv2)) %>%
+    
+    # Count frequencies
+    count(Combination, name = "Frequency") %>%
+    
+    # Rank and Top 3
+    arrange(desc(Frequency)) %>%
+    slice_head(n = 3) # Strict top 3 (use slice_max(n=3) if you want to include ties)
+
+} else {
+  # Fallback if columns missing
+  cpa_combos <- tibble(Combination = "No Data Found", Frequency = 0)
+}
+
+# 3. RENDER TABLE
+# ------------------------------------------------------------------------------
+kable(cpa_combos, 
+      booktabs = TRUE, 
+      col.names = c("Position Combination (1st - 2nd)", "Frequency"),
+      caption = "Top 3 CPA Position Combinations",
+      align = c("l", "c")) %>%
+  kable_styling(latex_options = c("hold_position")) %>%
+  column_spec(1, bold = TRUE, width = "6cm") %>%
+  column_spec(2, width = "3cm")
+```
+
+```{r cpa_pass_combo_ranked, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=7}
+# 1. Prepare the data
+pass_combination_plot <- data %>%
+  filter(Row == "SGP CPA") %>%
+  select(
+    Pass1_Raw = `1st Phase Pass`, 
+    Pass2_Raw = `2nd Phase Pass`
+  ) %>%
+  separate_rows(Pass1_Raw, sep = ",\\s*") %>%
+  separate_rows(Pass2_Raw, sep = ",\\s*") %>%
+  mutate(
+    Pass1 = str_trim(Pass1_Raw),
+    Pass2 = str_trim(Pass2_Raw)
+  ) %>%
+  filter(Pass1 != "" & !is.na(Pass1)) %>%
+  filter(Pass2 != "" & !is.na(Pass2)) %>%
+  
+  # Create path string
+  mutate(pass_path = paste(Pass1, "->", Pass2)) %>%
+  
+  # Count the frequency of each path
+  count(pass_path, name = "count") %>%
+  
+  # Filter for the top 10 most frequent paths
+  slice_max(count, n = 10) %>%
+  
+  # 1. Wrap text labels so they don't run off the page
+  mutate(pass_path = str_wrap(pass_path, width = 25)) %>%
+  
+  # 2. Rank the data so the highest frequency is at the top
+  mutate(pass_path = fct_reorder(pass_path, count)) %>%
+
+  # 3. Create the Plot
+  ggplot(aes(x = count, y = pass_path)) +
+  
+  # Use a single static color since we aren't tracking success anymore
+  geom_col(fill = "green") +
+  
+  # Add labels "on top" (to the right) of the bars
+  geom_text(aes(label = count), hjust = -0.2, size = 3.5, color = "black") +
+  
+  # Add extra space on the right (x-axis) so labels don't get cut off
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  
+  # Formatting
+  labs(
+    title = "Top 10 CPA Pass Combinations",
+    subtitle = "Ranked by frequency (Phase 1 -> Phase 2)",
+    x = "Frequency",
+    y = "" 
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    axis.text.y = element_text(size = 9)
+  )
+
+# Display the plot
+print(pass_combination_plot)
+```
+
+\clearpage
+
+# AANA DRAGONS (AGGREGATED) CENTRE PASS ATTACKING TENDENCIES
+
+```{r BRUPHITHA_cpa_tendencies, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=10, fig.align='center'}
+library(gridExtra)
+library(grid)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+
+# 1. DEFINE MAPS (Same as SGP)
+# ------------------------------------------------------------------------------
+map_phase1 <- tribble(
+  ~Location,               ~x, ~y, ~Label,
+  "Center Left Attack",     1,  2, "C Left (A)",
+  "Center Mid Attack",      2,  2, "C Mid (A)",
+  "Center Right Attack",    3,  2, "C Right (A)",
+  "Center Left Defense",    1,  1, "C Left (D)",
+  "Center Mid Defense",     2,  1, "C Mid (D)",
+  "Center Right Defense",   3,  1, "C Right (D)"
+)
+
+map_phase2 <- tribble(
+  ~Location,               ~x, ~y, ~Label,
+  "Center Left Attack",     1,  2, "C Left (A)",
+  "Center Mid Attack",      2,  2, "C Mid (A)",
+  "Center Right Attack",    3,  2, "C Right (A)",
+  "Center Left Defense",    1,  1, "C Left (D)",
+  "Center Mid Defense",     2,  1, "C Mid (D)",
+  "Center Right Defense",   3,  1, "C Right (D)",
+  "Attacking Left",         1,  3, "Att Left",
+  "Attacking Middle",       2,  3, "Att Mid",
+  "Attacking Right",        3,  3, "Att Right",
+  "Attacking Left Pocket",  1,  4, "AL Pocket",
+  "Attacking D",            2,  4, "Att Circle",
+  "Attacking Right Pocket", 3,  4, "AR Pocket"
+)
+
+# 2. HELPER FUNCTIONS
+# ------------------------------------------------------------------------------
+
+find_col <- function(df, pattern) {
+  match <- names(df)[str_detect(names(df), regex(pattern, ignore_case = TRUE))]
+  if(length(match) > 0) return(match[1]) 
+  return(NULL) 
+}
+
+get_loc_counts <- function(df, pass_pattern, map_df) {
+  target_col <- find_col(df, pass_pattern)
+  
+  if (is.null(target_col)) {
+    return(map_df %>% mutate(Count = 0))
+  }
+  
+  df %>%
+    filter(Row == "SGP CPD") %>% # Updated Row for Opposition
+    filter(str_detect(Opponent, "AANA Dragons")) %>% # Filter for specific opponents
+    separate_rows(!!sym(target_col), sep = ",\\s*") %>%
+    mutate(Location = str_trim(!!sym(target_col))) %>%
+    filter(Location %in% map_df$Location) %>%
+    group_by(Location) %>%
+    summarise(Count = n(), .groups = "drop") %>%
+    right_join(map_df, by = "Location") %>%
+    replace_na(list(Count = 0))
+}
+
+# --- UPDATED FUNCTION (Same logic as SGP Fix) ---
+get_receiver_stats <- function(df, pass_pattern, recv_pattern, target_recvs) {
+  pass_col <- find_col(df, pass_pattern)
+  recv_col <- find_col(df, recv_pattern)
+  
+  if (is.null(recv_col)) {
+    return(tibble(Receiver = target_recvs, Count = 0))
+  }
+
+  stats <- df %>%
+    filter(Row == "SGP CPD") %>% # Updated Row for Opposition
+    filter(str_detect(Opponent, "AANA Dragons")) %>% # Filter for specific opponents
+    select(Receiver_Raw = !!sym(recv_col)) %>%
+    separate_rows(Receiver_Raw, sep = ",\\s*") %>%
+    mutate(Receiver = str_trim(Receiver_Raw)) %>%
+    
+    # --- LOGIC FIX: Filter out Empty/NA cells first ---
+    # This prevents rows with NO 2nd phase from being counted as "Not Taken"
+    filter(!is.na(Receiver) & Receiver != "") %>%
+    
+    # Standardize "Not Taken" case
+    mutate(
+      Receiver = case_when(
+        str_to_lower(Receiver) == "not taken" ~ "Not Taken",
+        TRUE ~ Receiver
+      )
+    ) %>%
+    # --------------------------------------------------
+    
+    group_by(Receiver) %>%
+    summarise(Count = n(), .groups = "drop")
+  
+  tibble(Receiver = target_recvs) %>%
+    left_join(stats, by = "Receiver") %>%
+    replace_na(list(Count = 0))
+}
+
+# UPDATED: Function to Draw Heatmap with "Blue Intensity" Theme (Opposition)
+draw_cpa_heatmap <- function(plot_data, title_text) {
+  
+  plot_data_ranked <- plot_data %>%
+    mutate(
+      Rank = dense_rank(desc(Count)),
+      Highlight = case_when(
+        Count == 0 ~ "Other", 
+        Rank == 1 ~ "Rank1",
+        Rank == 2 ~ "Rank2",
+        Rank == 3 ~ "Rank3",
+        TRUE ~ "Other"
+      ),
+      Highlight = factor(Highlight, levels = c("Rank1", "Rank2", "Rank3", "Other"))
+    )
+
+  # Red Palette for Opposition
+    highlight_colors <- c(
+    "Rank1" = "#b30000",   
+    "Rank2" = "#e34a33",   
+    "Rank3" = "#fc8d59",   
+    "Other" = "#ffe0d1"      
+  )
+
+
+  ggplot(plot_data_ranked, aes(x = x, y = y, fill = Highlight)) +
+    geom_tile(color = "black", size = 0.5) +
+    
+    geom_text(aes(label = ifelse(Count > 0, Count, ""), 
+                  color = Highlight == "Rank1" | Highlight == "Rank2"), 
+              fontface = "bold", size = 5) +
+    
+    scale_color_manual(values = c("FALSE" = "black", "TRUE" = "white"), guide = "none") +
+    
+    geom_text(aes(label = Label), 
+              color = "grey30", size = 3, vjust = 2.5) +
+    
+    scale_fill_manual(values = highlight_colors) +
+    
+    coord_fixed(ratio = 1) +
+    theme_void() +
+    labs(title = title_text) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", margin = margin(b=10)),
+      legend.position = "none"
+    )
+}
+
+# Function to Draw Table
+draw_cpa_table <- function(table_data) {
+  # --- MODIFICATION: REMOVED THE "TOTAL" ROW LOGIC ---
+  # Previously: table_data <- table_data %>% bind_rows(tibble(Receiver = "Total", ...))
+  # Now: We simply pass the table_data as is (Receiver breakdown only)
+  
+  tt <- ttheme_minimal(
+    core = list(fg_params = list(hjust = 0, x = 0.1)),
+    colhead = list(fg_params = list(hjust = 0, x = 0.1, fontface = "bold"))
+  )
+  tableGrob(table_data, rows = NULL, theme = tt)
+}
+
+# 3. PREPARE DATA
+# ------------------------------------------------------------------------------
+data_p1_loc <- get_loc_counts(data, "1st.*Pass", map_phase1)
+
+# UPDATE: Changed "Not taken" to "Not Taken" (Capital T) to match CSV
+targets_p1 <- c("GA", "WA", "GD", "WD", "Not Taken")
+data_p1_recv <- get_receiver_stats(data, "1st.*Pass", "1st.*Receiver", targets_p1)
+
+data_p2_loc <- get_loc_counts(data, "2nd.*Pass", map_phase2)
+
+# UPDATE: Changed "Not taken" to "Not Taken" (Capital T) to match CSV
+targets_p2 <- c("GS", "GA", "WA", "C", "WD", "GD", "GK", "Not Taken")
+data_p2_recv <- get_receiver_stats(data, "2nd.*Pass", "2nd.*Receiver", targets_p2)
+
+# 4. GENERATE PLOTS & RENDER
+# ------------------------------------------------------------------------------
+plot_p1 <- draw_cpa_heatmap(data_p1_loc, "1st Phase Distribution")
+tbl_p1  <- draw_cpa_table(data_p1_recv)
+
+plot_p2 <- draw_cpa_heatmap(data_p2_loc, "2nd Phase Distribution")
+tbl_p2  <- draw_cpa_table(data_p2_recv)
+
+# Arrange 1st Phase
+grid.arrange(plot_p1, tbl_p1, ncol = 2, widths = c(1.5, 1))
+
+# Arrange 2nd Phase
+grid.arrange(plot_p2, tbl_p2, ncol = 2, widths = c(1.5, 1))
+```
+
+```{r BRUPHITHA_pass_combo_ranked, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=7}
+# 1. Prepare the data (OPP)
+opp_pass_combo_plot <- data %>%
+  filter(Row == "SGP CPD") %>% # FILTER FOR OPPOSITION CPA
+  filter(str_detect(Opponent, "AANA Dragons")) %>% # Specific Opponents
+  select(
+    Pass1_Raw = `1st Phase Pass`, 
+    Pass2_Raw = `2nd Phase Pass`
+  ) %>%
+  separate_rows(Pass1_Raw, sep = ",\\s*") %>%
+  separate_rows(Pass2_Raw, sep = ",\\s*") %>%
+  mutate(
+    Pass1 = str_trim(Pass1_Raw),
+    Pass2 = str_trim(Pass2_Raw)
+  ) %>%
+  filter(Pass1 != "" & !is.na(Pass1)) %>%
+  filter(Pass2 != "" & !is.na(Pass2)) %>%
+  
+  # Create path string
+  mutate(pass_path = paste(Pass1, "->", Pass2)) %>%
+  
+  # Count frequency
+  count(pass_path, name = "count") %>%
+  
+  # Top 10
+  slice_max(count, n = 10) %>%
+  
+  # Formatting
+  mutate(pass_path = str_wrap(pass_path, width = 25)) %>%
+  mutate(pass_path = fct_reorder(pass_path, count)) %>%
+
+  # 3. Create Plot (Blue Fill)
+  ggplot(aes(x = count, y = pass_path)) +
+  
+  # Use Blue fill for Opponent
+  geom_col(fill = "dark red") + 
+  
+  geom_text(aes(label = count), hjust = -0.2, size = 3.5, color = "black") +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  
+  labs(
+    title = "Top 10 AANA Dragons CPA Pass Combinations",,
+    subtitle = "Ranked by frequency (Phase 1 -> Phase 2)",
+    x = "Frequency",
+    y = "" 
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    axis.text.y = element_text(size = 9)
+  )
+
+# Display
+print(opp_pass_combo_plot)
+```
+
+\clearpage
+
+# SGP GAINS & TURNOVERS
+
+KPI Summary
+
+- Gains: At least 6 per quarter (24 total) and 75%+ conversion
+
+- Turnovers: No more than 5 per quarter (20 total)
+
+```{r sgp_gains_turnovers, echo=FALSE, message=FALSE, warning=FALSE}
+# ------------------------------------------------------------------------------
+# 1. HELPER FUNCTION: QUARTERLY BREAKDOWN
+# ------------------------------------------------------------------------------
+calc_gn_to_table <- function(df) {
+  
+  # --- TARGETS ---
+  target_gains_cnt_q  <- 6    # Green if Gains >= 6 per quarter
+  target_gains_cnt_t  <- 24   # Green if Gains >= 24 total
+  target_gains_conv   <- 0.75 # Green if Gains Conversion >= 75%
+  
+  target_to_cnt_q     <- 5    # Green if Turnovers <= 5 per quarter
+  target_to_cnt_t     <- 20   # Green if Turnovers <= 20 total
+  # ---------------------------------------------------------------------------
+
+  # A. CALCULATE RAW STATS
+  stats_q <- df %>%
+    filter(Row %in% c("SGP Gains", "SGP Turnovers")) %>%
+    group_by(Quarter, Row) %>%
+    summarise(
+      Count = n(),
+      Success_Gain = sum(Row == "SGP Gains" & str_detect(`Shot Outcome`, "SGP Goal"), na.rm=TRUE),
+      Concede_TO   = sum(Row == "SGP Turnovers" & str_detect(`Shot Outcome`, "OPP Goal"), na.rm=TRUE),
+      .groups = "drop"
+    ) %>%
+    complete(Quarter = c("Q1", "Q2", "Q3", "Q4"), Row = c("SGP Gains", "SGP Turnovers"), 
+             fill = list(Count = 0, Success_Gain = 0, Concede_TO = 0))
+
+  # B. CALCULATE TOTALS
+  stats_total <- stats_q %>%
+    group_by(Row) %>%
+    summarise(
+      Quarter = "Total",
+      Count = sum(Count),
+      Success_Gain = sum(Success_Gain),
+      Concede_TO = sum(Concede_TO),
+      .groups = "drop"
+    )
+
+  # C. COMBINE, CLEAN NAMES, & PIVOT
+  bind_rows(stats_q, stats_total) %>%
+    mutate(Row = str_replace_all(Row, " ", "_")) %>%
+    pivot_wider(names_from = Row, values_from = c(Count, Success_Gain, Concede_TO)) %>%
+    mutate(
+      Metric_Gains = Count_SGP_Gains,
+      Metric_Gains_Conv = ifelse(Count_SGP_Gains > 0, Success_Gain_SGP_Gains / Count_SGP_Gains, 0),
+      Metric_TO = Count_SGP_Turnovers,
+      Metric_TO_Concede = ifelse(Count_SGP_Turnovers > 0, Concede_TO_SGP_Turnovers / Count_SGP_Turnovers, 0),
+      Metric_Diff = Metric_Gains - Metric_TO
+    ) %>%
+    
+    # D. FORMATTING
+    rowwise() %>%
+    mutate(
+      Display_Gains = {
+        threshold <- ifelse(Quarter == "Total", target_gains_cnt_t, target_gains_cnt_q)
+        color_bg <- ifelse(Metric_Gains >= threshold, "#57BB8A", "#E67C73")
+        cell_spec(as.character(Metric_Gains), "latex", color = "white", bold = TRUE, background = color_bg)
+      },
+      Display_Gains_Conv = {
+        color_bg <- ifelse(Metric_Gains_Conv >= target_gains_conv, "#57BB8A", "#E67C73")
+        val_str <- paste0(round(Metric_Gains_Conv * 100), "%") 
+        if(Count_SGP_Gains == 0) "-" else cell_spec(val_str, "latex", color = "white", bold = TRUE, background = color_bg)
+      },
+      Display_TO = {
+        threshold <- ifelse(Quarter == "Total", target_to_cnt_t, target_to_cnt_q)
+        color_bg <- ifelse(Metric_TO <= threshold, "#57BB8A", "#E67C73")
+        cell_spec(as.character(Metric_TO), "latex", color = "white", bold = TRUE, background = color_bg)
+      },
+      Display_TO_Concede = {
+        val_str <- paste0(round(Metric_TO_Concede * 100), "\\%")
+        if(Count_SGP_Turnovers == 0) "-" else val_str
+      },
+      Display_Diff = {
+        color_bg <- case_when(
+          Metric_Diff > 0 ~ "#57BB8A", # Green
+          Metric_Diff < 0 ~ "#E67C73", # Red
+          TRUE            ~ "white"    # Zero
+        )
+        color_text <- ifelse(Metric_Diff == 0, "black", "white")
+        cell_spec(as.character(Metric_Diff), "latex", color = color_text, bold = TRUE, background = color_bg)
+      }
+    ) %>%
+    ungroup() %>%
+    select(Quarter, Display_Gains, Display_Gains_Conv, Display_TO, Display_TO_Concede, Display_Diff) %>%
+    
+    # Pivot to Final Shape
+    pivot_longer(cols = starts_with("Display"), names_to = "Metric_Code", values_to = "Value") %>%
+    mutate(
+      Metric = case_when(
+        Metric_Code == "Display_Gains" ~ "Gains",
+        Metric_Code == "Display_Gains_Conv" ~ "Gains Conversion \\%",
+        Metric_Code == "Display_TO" ~ "Turnovers",
+        Metric_Code == "Display_TO_Concede" ~ "Turnovers to Concede \\%",
+        Metric_Code == "Display_Diff" ~ "Gains to Turnover Differential"
+      )
+    ) %>%
+    select(Quarter, Metric, Value) %>%
+    pivot_wider(names_from = Quarter, values_from = Value) %>%
+    mutate(Metric = factor(Metric, levels = c(
+      "Gains", "Gains Conversion \\%", "Turnovers", "Turnovers to Concede \\%", "Gains to Turnover Differential"
+    ))) %>%
+    arrange(Metric)
+}
+
+# ------------------------------------------------------------------------------
+# 2. HELPER FUNCTION: MATCH BREAKDOWN (New)
+# ------------------------------------------------------------------------------
+calc_gn_to_match_table <- function(df) {
+  
+  # --- TARGETS (Using 'Total' targets for full matches) ---
+  target_gains_cnt  <- 24    
+  target_gains_conv <- 0.75 
+  target_to_cnt     <- 20    
+
+  # A. CALCULATE RAW STATS
+  stats_match <- df %>%
+    filter(Row %in% c("SGP Gains", "SGP Turnovers")) %>%
+    mutate(Match = case_when(
+  str_detect(Opponent, "AANA Dragons \\(Day 1\\)") ~ "Day 1",
+  str_detect(Opponent, "AANA Dragons \\(Day 2\\)") ~ "Day 2",
+  str_detect(Opponent, "AANA Dragons \\(Day 3\\)") ~ "Day 3",
+  TRUE ~ Opponent
+)) %>%
+    group_by(Match, Row) %>%
+    summarise(
+      Count = n(),
+      Success_Gain = sum(Row == "SGP Gains" & str_detect(`Shot Outcome`, "SGP Goal"), na.rm=TRUE),
+      Concede_TO   = sum(Row == "SGP Turnovers" & str_detect(`Shot Outcome`, "OPP Goal"), na.rm=TRUE),
+      .groups = "drop"
+    )
+
+  # B. PIVOT & CALCULATE
+  formatted_table <- stats_match %>%
+    mutate(Row = str_replace_all(Row, " ", "_")) %>%
+    pivot_wider(names_from = Row, values_from = c(Count, Success_Gain, Concede_TO), values_fill = 0) %>%
+    mutate(
+      # Safely handle missing columns if a match had 0 gains/turnovers
+      Count_SGP_Gains = if("Count_SGP_Gains" %in% names(.)) Count_SGP_Gains else 0,
+      Success_Gain_SGP_Gains = if("Success_Gain_SGP_Gains" %in% names(.)) Success_Gain_SGP_Gains else 0,
+      Count_SGP_Turnovers = if("Count_SGP_Turnovers" %in% names(.)) Count_SGP_Turnovers else 0,
+      Concede_TO_SGP_Turnovers = if("Concede_TO_SGP_Turnovers" %in% names(.)) Concede_TO_SGP_Turnovers else 0,
+      
+      Metric_Gains = Count_SGP_Gains,
+      Metric_Gains_Conv = ifelse(Count_SGP_Gains > 0, Success_Gain_SGP_Gains / Count_SGP_Gains, 0),
+      Metric_TO = Count_SGP_Turnovers,
+      Metric_TO_Concede = ifelse(Count_SGP_Turnovers > 0, Concede_TO_SGP_Turnovers / Count_SGP_Turnovers, 0),
+      Metric_Diff = Metric_Gains - Metric_TO
+    ) %>%
+    
+    # C. FORMATTING
+    rowwise() %>%
+    mutate(
+      Display_Gains = {
+        color_bg <- ifelse(Metric_Gains >= target_gains_cnt, "#57BB8A", "#E67C73")
+        cell_spec(as.character(Metric_Gains), "latex", color = "white", bold = TRUE, background = color_bg)
+      },
+      Display_Gains_Conv = {
+        color_bg <- ifelse(Metric_Gains_Conv >= target_gains_conv, "#57BB8A", "#E67C73")
+        val_str <- paste0(round(Metric_Gains_Conv * 100), "%") 
+        if(Count_SGP_Gains == 0) "-" else cell_spec(val_str, "latex", color = "white", bold = TRUE, background = color_bg)
+      },
+      Display_TO = {
+        color_bg <- ifelse(Metric_TO <= target_to_cnt, "#57BB8A", "#E67C73")
+        cell_spec(as.character(Metric_TO), "latex", color = "white", bold = TRUE, background = color_bg)
+      },
+      Display_TO_Concede = {
+        val_str <- paste0(round(Metric_TO_Concede * 100), "\\%")
+        if(Count_SGP_Turnovers == 0) "-" else val_str
+      },
+      Display_Diff = {
+        color_bg <- case_when(
+          Metric_Diff > 0 ~ "#57BB8A", 
+          Metric_Diff < 0 ~ "#E67C73", 
+          TRUE            ~ "white"    
+        )
+        color_text <- ifelse(Metric_Diff == 0, "black", "white")
+        cell_spec(as.character(Metric_Diff), "latex", color = color_text, bold = TRUE, background = color_bg)
+      }
+    ) %>%
+    ungroup() %>%
+    select(Match, Display_Gains, Display_Gains_Conv, Display_TO, Display_TO_Concede, Display_Diff) %>%
+    
+    # D. RESHAPE
+    pivot_longer(cols = starts_with("Display"), names_to = "Metric_Code", values_to = "Value") %>%
+    mutate(
+      Metric = case_when(
+        Metric_Code == "Display_Gains" ~ "Gains",
+        Metric_Code == "Display_Gains_Conv" ~ "Gains Conversion \\%",
+        Metric_Code == "Display_TO" ~ "Turnovers",
+        Metric_Code == "Display_TO_Concede" ~ "Turnovers to Concede \\%",
+        Metric_Code == "Display_Diff" ~ "Gains to Turnover Differential"
+      )
+    ) %>%
+    select(Match, Metric, Value) %>%
+    pivot_wider(names_from = Match, values_from = Value) %>%
+    
+    # --- FIX: ENFORCE CHRONOLOGICAL ORDER ---
+    select(Metric, any_of(c("Day 1", "Day 2", "Day 3"))) %>%
+    
+    mutate(Metric = factor(Metric, levels = c(
+      "Gains", "Gains Conversion \\%", "Turnovers", "Turnovers to Concede \\%", "Gains to Turnover Differential"
+    ))) %>%
+    arrange(Metric)
+}
+
+# 3. GENERATE AND RENDER
+# ------------------------------------------------------------------------------
+table_quarterly <- calc_gn_to_table(data)
+table_match <- calc_gn_to_match_table(data)
+
+kable(table_quarterly, 
+      booktabs = TRUE, 
+      escape = FALSE,
+      col.names = c("Metrics", "Q1", "Q2", "Q3", "Q4", "Total"),
+      caption = "SGP Gains \\& Turnovers (Quarterly)") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  column_spec(1, bold = TRUE, width = "5cm") %>%
+  column_spec(2:6, width = "1.5cm", latex_valign = "m") %>%
+  column_spec(6, bold = TRUE)
+
+kable(table_match, 
+      booktabs = TRUE, 
+      escape = FALSE,
+      caption = "SGP Gains \\& Turnovers (Per Match)") %>%
+  kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+  column_spec(1, bold = TRUE, width = "5cm") %>%
+  column_spec(2:ncol(table_match), width = "1.5cm", latex_valign = "m") %>%
+  column_spec(ncol(table_match), bold = TRUE)
+```
+
+# REASON for GN & TOs
+
+```{r sgp_gains_reasons_plot, echo=FALSE, message=FALSE, warning=FALSE, fig.width=7, fig.height=6, fig.align='center'}
+# 1. DEFINE STANDARD COLORS (Global Palette)
+# ------------------------------------------------------------------------------
+# This ensures "Interception" is always the same color in every plot
+reason_colors <- c(
+  "Interception"       = "#66c2a5", 
+  "Contact"            = "#fc8d62", 
+  "Obstruction"        = "#8da0cb", 
+  "Stepping"           = "#e78ac3", 
+  "Pass Out of Bounds" = "#ffd92f", 
+  "Short Pass"         = "#e5c494", 
+  "Offside"            = "#b3b3b3", 
+  "Held"               = "#a6cee3", 
+  "Breaking"           = "#1f78b4", 
+  "Dropped Ball"       = "#33a02c", 
+  "Droped Ball"        = "#33a02c",
+  "Missed Rebound"     = "#b2df8a", 
+  "Shot Out of Bounds" = "#fb9a99",
+  "Repossession"       = "#984ea3", # Purple
+  "Over Third"         = "navyblue",
+  "Centre Positioned Incorrectly" = "maroon"
+)
+
+
+# 2. ROBUST DATA PREPARATION
+# ------------------------------------------------------------------------------
+gains_exclusions <- c() 
+
+gains_reasons_data <- data %>%
+  filter(Row == "SGP Gains") %>%
+  filter(!is.na(Player) & Player != "") %>%
+  separate_rows(`Gains / Turnover Reason`, sep = ",\\s*") %>%
+  mutate(Reason = str_trim(`Gains / Turnover Reason`)) %>%
+  filter(!Reason %in% gains_exclusions) %>%
+  group_by(Player, Reason) %>%
+  summarise(Count = n(), .groups = "drop")
+
+# 3. PLOT
+# ------------------------------------------------------------------------------
+if(nrow(gains_reasons_data) > 0) {
+  
+  ggplot(gains_reasons_data, aes(x = Count, y = reorder(Player, Count, sum), fill = Reason)) +
+    geom_col(width = 0.7) +
+    
+    geom_text(aes(label = Count), 
+              position = position_stack(vjust = 0.5), 
+              size = 3, 
+              color = "white", 
+              fontface = "bold") +
+    
+    scale_x_continuous(breaks = scales::pretty_breaks()) +
+    
+    # --- UPDATED: USE MANUAL COLORS ---
+    scale_fill_manual(values = reason_colors) + 
+    # ----------------------------------
+    
+    theme_classic() +
+    labs(
+      title = "Breakdown of Gain Reasons by Player",
+      subtitle = "Includes Interceptions, Rebounds, and Forced Errors",
+      x = "Count of Gains",
+      y = "",
+      fill = "Reason"
+    ) +
+    theme(
+      legend.position = "bottom",
+      plot.title = element_text(face = "bold", size = 12),
+      panel.grid.major.y = element_blank()
+    )
+  
+} else {
+  cat("No gain reasons recorded for this match.")
+}
+```
+
+```{r sgp_turnover_reasons_plot, echo=FALSE, message=FALSE, warning=FALSE, fig.width=7, fig.height=6, fig.align='left'}
+# 1. REUSE STANDARD COLORS
+# ------------------------------------------------------------------------------
+# We redefine it here just in case this chunk is run in isolation
+reason_colors <- c(
+  "Interception"       = "#66c2a5", 
+  "Contact"            = "#fc8d62", 
+  "Obstruction"        = "#8da0cb", 
+  "Stepping"           = "#e78ac3", 
+  "Pass Out of Bounds" = "#ffd92f", 
+  "Short Pass"         = "#e5c494", 
+  "Offside"            = "#b3b3b3", 
+  "Held"               = "#a6cee3", 
+  "Breaking"           = "#1f78b4", 
+  "Dropped Ball"       = "#33a02c", 
+  "Droped Ball"        = "#33a02c",
+  "Missed Rebound"     = "#b2df8a", 
+  "Shot Out of Bounds" = "#fb9a99",
+  "Repossession"       = "#984ea3", # Purple
+  "Over Third"         = "navyblue",
+  "Centre Positioned Incorrectly" = "maroon"
+)
+
+# 2. ROBUST DATA PREPARATION
+# ------------------------------------------------------------------------------
+to_exclusions <- c("Missed Rebound", "Shot Out of Bounds")
+
+reasons_data <- data %>%
+  filter(Row == "SGP Turnovers") %>%
+  filter(!is.na(Player) & Player != "") %>%
+  separate_rows(`Gains / Turnover Reason`, sep = ",\\s*") %>%
+  mutate(Reason = str_trim(`Gains / Turnover Reason`)) %>%
+  filter(!Reason %in% to_exclusions) %>%
+  group_by(Player, Reason) %>%
+  summarise(Count = n(), .groups = "drop")
+
+# 3. PLOT
+# ------------------------------------------------------------------------------
+if(nrow(reasons_data) > 0) {
+  
+  ggplot(reasons_data, aes(x = Count, y = reorder(Player, Count, sum), fill = Reason)) +
+    geom_col(width = 0.7) +
+    
+    geom_text(aes(label = Count), 
+              position = position_stack(vjust = 0.5), 
+              size = 3, 
+              color = "white", 
+              fontface = "bold") +
+    
+    scale_x_continuous(breaks = scales::pretty_breaks()) +
+    
+    # --- UPDATED: USE MANUAL COLORS ---
+    scale_fill_manual(values = reason_colors) + 
+    # ----------------------------------
+    
+    theme_classic() +
+    guides(fill = guide_legend(nrow = 3, byrow = TRUE)) +
+    labs(
+      title = "Breakdown of Turnover Reasons by Player",
+      subtitle = "Excluding 'Missed Rebound' and 'Shot Out of Bounds'",
+      x = "Count of Turnovers",
+      y = "",
+      fill = "Reason"
+    ) +
+    theme(
+      legend.position = "bottom",
+      plot.title = element_text(face = "bold", size = 12),
+      panel.grid.major.y = element_blank()
+    )
+  
+} else {
+  cat("No turnover reasons recorded for this match (excluding Rebounds/Out of Bounds).")
+}
+```
+
+\clearpage
+
+# GAINS vs TURNOVERS DIFFERENTIAL (OVERALL)
+
+```{r sgp_gn_to_differential, echo=FALSE, message=FALSE, warning=FALSE}
+# 1. DEFINE TARGET METRICS & ORDER
+# ------------------------------------------------------------------------------
+target_metrics <- c(
+  "Interception",
+  "Pass Out of Bounds",
+  "Dropped Ball",
+  "Stepping",
+  "Contact",
+  "Held",
+  "Over Third",
+  "Offside",
+  "Obstruction",
+  "Repossession",
+  "Breaking",
+  "Short Pass",
+  "Missed Shot Rebound",
+  "Missed Shot Out of Bounds",
+  "Centre Positioned Incorrectly"
+)
+
+# 2. DATA PROCESSING
+# ------------------------------------------------------------------------------
+diff_data <- data %>%
+  filter(Row %in% c("SGP Gains", "SGP Turnovers")) %>%
+  separate_rows(`Gains / Turnover Reason`, sep = ",\\s*") %>%
+  mutate(Reason_Raw = str_trim(`Gains / Turnover Reason`)) %>%
+  
+  # --- ROBUST MAPPING ---
+  mutate(Reason = case_when(
+    str_detect(Reason_Raw, regex("Intercept", ignore_case = T)) ~ "Interception",
+    str_detect(Reason_Raw, regex("Drop.*Ball", ignore_case = T)) ~ "Dropped Ball",
+    str_detect(Reason_Raw, regex("Missed Rebound", ignore_case = T)) ~ "Missed Shot Rebound",
+    str_detect(Reason_Raw, regex("Shot Out of Bounds", ignore_case = T)) ~ "Missed Shot Out of Bounds",
+    str_detect(Reason_Raw, regex("Pass Out", ignore_case = T)) ~ "Pass Out of Bounds",
+    str_detect(Reason_Raw, regex("Held", ignore_case = T)) ~ "Held",
+    str_detect(Reason_Raw, regex("Over.*Third", ignore_case = T)) ~ "Over Third",
+    str_detect(Reason_Raw, regex("Short Pass", ignore_case = T)) ~ "Short Pass",
+    str_detect(Reason_Raw, regex("Breaking", ignore_case = T)) ~ "Breaking",
+    str_detect(Reason_Raw, regex("Contact", ignore_case = T)) ~ "Contact",
+    str_detect(Reason_Raw, regex("Obstruction", ignore_case = T)) ~ "Obstruction",
+    str_detect(Reason_Raw, regex("Offside", ignore_case = T)) ~ "Offside",
+    str_detect(Reason_Raw, regex("Repossession", ignore_case = T)) ~ "Repossession",
+    str_detect(Reason_Raw, regex("Stepping", ignore_case = T)) ~ "Stepping",
+    TRUE ~ Reason_Raw
+  )) %>%
+  
+  filter(Reason %in% target_metrics) %>%
+  group_by(Reason, Row) %>%
+  summarise(Count = n(), .groups = "drop") %>%
+  pivot_wider(names_from = Row, values_from = Count, values_fill = 0) %>%
+  
+  rename_with(~ "Gains", any_of("SGP Gains")) %>%
+  rename_with(~ "Turnovers", any_of("SGP Turnovers")) %>%
+  
+  bind_rows(tibble(Reason = character(), Gains = numeric(), Turnovers = numeric())) %>%
+  mutate(Gains = replace_na(Gains, 0), Turnovers = replace_na(Turnovers, 0)) %>%
+  
+  full_join(tibble(Reason = target_metrics), by = "Reason") %>%
+  replace_na(list(Gains = 0, Turnovers = 0)) %>%
+  
+  mutate(Differential = Gains - Turnovers) %>%
+  mutate(Reason = factor(Reason, levels = target_metrics)) %>%
+  arrange(Reason) %>%
+  
+  # --- CONDITIONAL FORMATTING ---
+  rowwise() %>%
+  mutate(Differential = {
+    # 1. Define Background Color
+    color_bg <- case_when(
+      Differential > 0 ~ "#57BB8A", # Green
+      Differential < 0 ~ "#E67C73", # Red
+      TRUE             ~ "white"    # White
+    )
+    
+    # 2. Define Text Color (White on color, Black on white)
+    color_text <- ifelse(Differential == 0, "black", "white")
+    
+    # 3. Apply Formatting
+    cell_spec(Differential, "latex", color = color_text, bold = TRUE, background = color_bg)
+  }) %>%
+  ungroup() %>%
+  
+  select(Metrics = Reason, Gains, Turnovers, Differential)
+
+# 3. RENDER TABLE
+# ------------------------------------------------------------------------------
+kable(diff_data, 
+      format = "latex", 
+      booktabs = TRUE, 
+      escape = FALSE,
+      align = c("l", "c", "c", "c"), 
+      caption = "Gains vs Turnovers Differential (Overall)") %>%
+  # REMOVED "striped" TO FIX COLOR CONFLICT
+  kable_styling(latex_options = c("hold_position"), full_width = FALSE) %>% 
+  column_spec(1, bold = TRUE, width = "5cm") %>%
+  column_spec(2:4, width = "2.5cm", latex_valign = "m")
+```
+
+\clearpage
+
+# OVERALL COURT LOCATION for GN/TOs
+
+- Gains include defensive rebounds, but excludes shot out of bounds.
+
+- Turnovers does not include missed shots.
+
+```{r sgp_court_locations, echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=5, fig.align='center'}
+# 1. DEFINE COURT MAPPING (18 TILES)
+# ------------------------------------------------------------------------------
+# We map text labels to (x, y) coordinates.
+# X: 1=Left, 2=Middle, 3=Right
+# Y: 1-2 (Defense), 3-4 (Centre), 5-6 (Attack)
+
+court_map <- tribble(
+  ~Location,                   ~x, ~y, ~Zone_Label,
+
+  # --- DEFENSIVE THIRD (Rows 1-2) ---
+  "Defensive Left Pocket",      1, 1, "DL Pocket",
+  "Defensive D",                2, 1, "Def Circle",
+  "Defensive Right Pocket",     3, 1, "DR Pocket",
+  "Defensive Left",             1, 2, "Def Left",
+  "Defensive Middle",           2, 2, "Def Mid",
+  "Defensive Right",            3, 2, "Def Right",
+
+  # --- CENTRE THIRD (Rows 3-4) ---
+  "Center Left Defense",        1, 3, "C Left (D)",
+  "Center Mid Defense",         2, 3, "C Mid (D)",
+  "Center Right Defense",       3, 3, "C Right (D)",
+  "Center Left Attack",         1, 4, "C Left (A)",
+  "Center Mid Attack",          2, 4, "C Mid (A)",
+  "Center Right Attack",        3, 4, "C Right (A)",
+
+  # --- ATTACKING THIRD (Rows 5-6) ---
+  "Attacking Left",             1, 5, "Att Left",
+  "Attacking Middle",           2, 5, "Att Mid",
+  "Attacking Right",            3, 5, "Att Right",
+  "Attacking Left Pocket",      1, 6, "AL Pocket",
+  "Attacking D",                2, 6, "Att Circle",
+  "Attacking Right Pocket",     3, 6, "AR Pocket"
+)
+
+# 2. HELPER FUNCTION: GENERATE HEATMAP (WITH CRASH FIX)
+# ------------------------------------------------------------------------------
+generate_court_heatmap <- function(target_row, plot_title, low_col, high_col) {
+  
+  # A. Prepare Data with Exclusions
+  loc_data <- data %>%
+    filter(Row == target_row) %>%
+    
+    # --- SAFETY BLOCK: Handle Mismatched Lists ---
+    # This prevents the "size 6 to size 4" error by padding the shorter list
+    mutate(
+      # Treat NAs as empty strings
+      `Turnover Location` = replace_na(`Turnover Location`, ""),
+      `Gains / Turnover Reason` = replace_na(`Gains / Turnover Reason`, ""),
+      
+      # Count number of items (commas + 1)
+      n_loc = str_count(`Turnover Location`, ",") + 1,
+      n_reason = str_count(`Gains / Turnover Reason`, ",") + 1,
+      diff = n_loc - n_reason,
+      
+      # Pad Reason if it's shorter than Location
+      `Gains / Turnover Reason` = ifelse(diff > 0, 
+                                         paste0(`Gains / Turnover Reason`, str_dup(", Unknown", diff)), 
+                                         `Gains / Turnover Reason`),
+      
+      # Pad Location if it's shorter than Reason (Rare)
+      `Turnover Location` = ifelse(diff < 0, 
+                                   paste0(`Turnover Location`, str_dup(", Unknown", abs(diff))), 
+                                   `Turnover Location`)
+    ) %>%
+    # ---------------------------------------------
+    
+    # Robustness: Separate BOTH Location and Reason to ensure they stay aligned
+    separate_rows(`Turnover Location`, `Gains / Turnover Reason`, sep = ",\\s*") %>%
+    
+    # Clean Strings
+    mutate(
+      Location = str_trim(`Turnover Location`),
+      Reason = str_trim(`Gains / Turnover Reason`)
+    ) %>%
+    
+    # --- LOGIC UPDATE: APPLY EXCLUSIONS ---
+    filter(case_when(
+      # For Gains: Exclude "Shot Out of Bounds"
+      target_row == "SGP Gains" ~ !str_detect(Reason, regex("Shot Out of Bounds", ignore_case = TRUE)),
+      
+      # For Turnovers: Exclude "Missed Shots" (Missed Rebound & Shot Out of Bounds)
+      target_row == "SGP Turnovers" ~ !str_detect(Reason, regex("Missed Rebound|Shot Out of Bounds", ignore_case = TRUE)),
+      
+      # Default: Keep everything else
+      TRUE ~ TRUE
+    )) %>%
+    # --------------------------------------
+
+    # Count frequencies
+    group_by(Location) %>%
+    summarise(Count = n(), .groups = "drop")
+  
+  # B. Join with Map
+  # Right join keeps all 18 court tiles even if Count is 0
+  plot_data <- court_map %>%
+    left_join(loc_data, by = "Location") %>%
+    replace_na(list(Count = 0))
+  
+  # C. Plot
+  ggplot(plot_data, aes(x = x, y = y, fill = Count)) +
+    # Draw Tiles
+    geom_tile(color = "white", size = 1) +
+    
+    # Add Text Labels (Count)
+    geom_text(aes(label = ifelse(Count > 0, Count, "")), 
+              color = "black", fontface = "bold", size = 5) +
+    
+    # Add Zone Labels (Small, for reference)
+    geom_text(aes(label = Zone_Label), 
+              color = "grey30", size = 2.5, vjust = 2.5) +
+    
+    # Visuals: Court Lines (Thirds)
+    geom_hline(yintercept = c(2.5, 4.5), color = "black", size = 1, linetype = "solid") +
+    
+    # Coloring
+    scale_fill_gradient(low = low_col, high = high_col) +
+    
+    # Fix Aspect Ratio to look like a court (approx 1:2 ratio for 3x6 grid)
+    coord_fixed(ratio = 1) +
+    
+    # Styling
+    theme_void() + # Remove axes
+    labs(
+      title = plot_title,
+      fill = "Count"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold", size = 14, margin = margin(b = 10)),
+      legend.position = "right"
+    )
+}
+
+# 3. GENERATE PLOTS
+# ------------------------------------------------------------------------------
+
+# Plot 1: SGP Gains (Green Scale)
+p_gains <- generate_court_heatmap("SGP Gains", "Location Frequency: SGP Gains", "#DDDDDD", "#31a354")
+
+# Plot 2: SGP Turnovers (Red Scale)
+p_turnovers <- generate_court_heatmap("SGP Turnovers", "Location Frequency: SGP Turnovers", "#DDDDDD", "#de2d26")
+
+# 4. ARRANGE SIDE-BY-SIDE
+# ------------------------------------------------------------------------------
+grid.arrange(p_gains, p_turnovers, ncol = 2)
+```
+
+\clearpage
+
+# DOCUMENT METADATA
+
+```{R document_metadata, echo=FALSE}
+document_info <- tribble(
+  ~Field,                           ~Value,
+  "Version",                        "v1.0",
+  "Document Template Created By",   "Ibrahim Nasaruddin",
+  "Date Created",                   format(Sys.Date(), '%d-%m-%Y'),
+  "R Version",                      "R version 4.5.0 (2025-04-11)",
+  "RStudio Version",                "RStudio Version 2025.09.2+418",
+  "Software Used",                  "Hudl Sportscode"
+)
+
+kable(document_info, caption = "Document Metadata Information", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("striped", "hold_position"), full_width = FALSE)
+
+# If there are any revisions made by others, please document and include in the document_info table above.
+```

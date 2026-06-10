@@ -1,0 +1,546 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{amsmath}
+\usepackage{sectsty}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{float}
+\usepackage{makecell}
+\sectionfont{\centering}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Post-SEA Games 2025 Netball Report},
+  pdfauthor={HPSI Performance Analyst: Justin Tan},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Post-SEA Games 2025 Netball Report}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{\includegraphics[width=1in,height=\textheight,keepaspectratio]{PostSEAG2025_files/logo.jpg}
+
+\vspace{0.5cm}
+
+Prepared for: \vspace{0.2cm}
+
+\includegraphics[width=1in,height=\textheight,keepaspectratio]{PostSEAG2025_files/NetballSG_logo.jpg}}
+\author{HPSI Performance Analyst: Justin Tan}
+\date{Prepared on: 10-06-2026}
+
+\begin{document}
+\maketitle
+
+\section{EVENT SUMMARY}\label{event-summary}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:event_summary}Tournament Event Summary}
+\centering
+\begin{tabular}[t]{ll}
+\toprule
+Field & Value\\
+\midrule
+\cellcolor{gray!10}{Event} & \cellcolor{gray!10}{AANA Dragons Test Series}\\
+Venue & Singapore\\
+\cellcolor{gray!10}{Analyst} & \cellcolor{gray!10}{Justin Tan}\\
+Opponents Faced & AANA Dragons\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{MATCH SCORE}\label{match-score}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:match_score_summary}Aggregated Score Summary (All Games)}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{}ccccc>{}c}
+\toprule
+\textbf{Team} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Q4} & \textbf{Total}\\
+\midrule
+\textbf{Singapore} & 34 & 35 & 29 & 34 & \textbf{132}\\
+\textbf{All Opponents} & 29 & 35 & 31 & 36 & \textbf{131}\\
+\midrule
+\textbf{Differential} & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{5}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{0}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-2}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-2}}} & \textbf{\cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{1}}}}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\clearpage
+
+\section{SCORING \& FEED SUMMARY}\label{scoring-feed-summary}
+
+KPI Summary: At least 90\% accuracy for Shooting and Circle Edge Feeds
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:scoring_feed_summary}Singapore Scoring \& Feed Statistics (Overall)}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{}lllll>{}l}
+\toprule
+\textbf{Metric} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Q4} & \textbf{Total}\\
+\midrule
+\textbf{Shot Attempts} & 48 & 50 & 47 & 53 & \textbf{198}\\
+\textbf{Shooting (\%)} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{71\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{70\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{62\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{64\%}}} & \textbf{\cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{67\%}}}}\\
+\textbf{Circle Edge Feed Attempts} & 37 & 41 & 31 & 45 & \textbf{154}\\
+\textbf{Circle Edge Feed Accuracy (\%)} & \cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{86\%}}} & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{90\%}}} & \cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{84\%}}} & \cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{89\%}}} & \textbf{\cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{88\%}}}}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\clearpage
+
+\section{SINGAPORE PLAYER STATS
+(AGGREGATED)}\label{singapore-player-stats-aggregated}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:player_stats_summary}Aggregate Player Statistics (All Matches)}
+\centering
+\begin{tabular}[t]{lrrlrrrrl}
+\toprule
+\textbf{Player} & \textbf{Goals} & \textbf{Attempts} & \textbf{Shot \%} & \textbf{Feeds} & \textbf{Gains} & \textbf{Turnovers} & \textbf{Deflections} & \textbf{Deflections to Gain \%}\\
+\midrule
+Toh Kai Wei & 62 & 90 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{69\%}}} & 48 & 0 & 25 & 4 & 50%\\
+Amandeep Chahal & 41 & 70 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{59\%}}} & 18 & 6 & 17 & 0 & -\\
+Lee Pei Shan & 29 & 38 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{76\%}}} & 8 & 0 & 17 & 0 & -\\
+Anna Maccines & 0 & 0 & - & 59 & 0 & 7 & 0 & -\\
+Tan Yi Jie & 0 & 0 & - & 49 & 9 & 8 & 0 & -\\
+\addlinespace
+Goh Wei Ping & 0 & 0 & - & 41 & 0 & 9 & 8 & 62%\\
+Rachel Ling & 0 & 0 & - & 34 & 0 & 4 & 7 & 71%\\
+Jamie Lim & 0 & 0 & - & 9 & 43 & 7 & 5 & 0%\\
+Faithmaria Lawrence & 0 & 0 & - & 0 & 9 & 0 & 7 & 29%\\
+Miki Ng & 0 & 0 & - & 0 & 13 & 0 & 6 & 33%\\
+\addlinespace
+Sindhu Nair & 0 & 0 & - & 0 & 2 & 3 & 8 & 50%\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{SINGAPORE SHOOTING}\label{singapore-shooting}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:sgp_shooting_summary}Singapore Shooting Summary (Overall)}
+\centering
+\begin{tabular}[t]{>{}llllll}
+\toprule
+\textbf{Metric} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Q4} & \textbf{Total}\\
+\midrule
+\textbf{Shot Attempts} & 48 & 50 & 47 & 53 & 198\\
+\textbf{Goals} & 34 & 35 & 29 & 34 & 132\\
+\textbf{Shooting \%} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{71\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{70\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{62\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{64\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{67\%}}}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:sgp_shooting_summary}Singapore Shooting Summary (Per Match)}
+\centering
+\begin{tabular}[t]{>{}l}
+\toprule
+\textbf{Metric}\\
+\midrule
+\textbf{Shot Attempts}\\
+\textbf{Goals}\\
+\textbf{Shooting \%}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:sgp_shooting_summary}Shooting Performance by Position (Overall)}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{}lllll|>{}lllll|>{}l}
+\toprule
+\multicolumn{1}{c}{\textbf{ }} & \multicolumn{5}{c}{\textbf{Goal Attack (GA)}} & \multicolumn{5}{c}{\textbf{Goal Shooter (GS)}} \\
+\cmidrule(l{3pt}r{3pt}){2-6} \cmidrule(l{3pt}r{3pt}){7-11}
+\textbf{Metric} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Q4} & \textbf{Total} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Q4} & \textbf{Total}\\
+\midrule
+\textbf{Shot Attempts} & 26 & 24 & 17 & 26 & \textbf{93} & 22 & 26 & 30 & 27 & \textbf{105}\\
+\textbf{Goals} & 18 & 17 & 12 & 20 & \textbf{67} & 16 & 18 & 17 & 14 & \textbf{65}\\
+\textbf{Shooting \%} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{69\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{71\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{71\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{77\%}}} & \textbf{\cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{72\%}}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{73\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{69\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{57\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{52\%}}} & \textbf{\cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{62\%}}}}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/sgp_shooting_summary-1} \end{center}
+
+\clearpage
+
+\section{OPPOSITION SHOOTING}\label{opposition-shooting}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:opp_shooting_summary}Opponent Shooting Performance by Position (Overall)}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{}lllll|>{}lllll|>{}l}
+\toprule
+\multicolumn{1}{c}{\textbf{ }} & \multicolumn{5}{c}{\textbf{Opponent Goal Attack (GA)}} & \multicolumn{5}{c}{\textbf{Opponent Goal Shooter (GS)}} \\
+\cmidrule(l{3pt}r{3pt}){2-6} \cmidrule(l{3pt}r{3pt}){7-11}
+\textbf{Metric} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Q4} & \textbf{Total} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Q4} & \textbf{Total}\\
+\midrule
+\textbf{\cellcolor{gray!10}{Shot Attempts}} & \cellcolor{gray!10}{15} & \cellcolor{gray!10}{21} & \cellcolor{gray!10}{15} & \cellcolor{gray!10}{17} & \textbf{\cellcolor{gray!10}{68}} & \cellcolor{gray!10}{30} & \cellcolor{gray!10}{27} & \cellcolor{gray!10}{33} & \cellcolor{gray!10}{31} & \textbf{\cellcolor{gray!10}{121}}\\
+\textbf{Goals} & 10 & 15 & 6 & 10 & \textbf{41} & 19 & 20 & 25 & 26 & \textbf{90}\\
+\textbf{\cellcolor{gray!10}{Shooting \%}} & \cellcolor{gray!10}{67\%} & \cellcolor{gray!10}{71\%} & \cellcolor{gray!10}{40\%} & \cellcolor{gray!10}{59\%} & \textbf{\cellcolor{gray!10}{60\%}} & \cellcolor{gray!10}{63\%} & \cellcolor{gray!10}{74\%} & \cellcolor{gray!10}{76\%} & \cellcolor{gray!10}{84\%} & \textbf{\cellcolor{gray!10}{74\%}}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\clearpage
+
+\section{SGP PLAYER SHOOTING STATS}\label{sgp-player-shooting-stats}
+
+KPI Summary
+
+\begin{itemize}
+\item
+  Green: ≥ 90\% accuracy
+\item
+  Yellow: 80\%-89\% accuracy
+\item
+  Red: \textless{} 80\% accuracy
+\end{itemize}
+
+\vspace{10mm}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/sgp_player_shooting_heatmap-1} \end{center}
+
+\clearpage
+
+\clearpage
+
+\section{SGP FEEDS SUMMARY}\label{sgp-feeds-summary}
+
+KPI Summary: At least 90\% accuracy for Circle Edge
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:sgp_feeds_summary}SGP Feeds Summary}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{\raggedright\arraybackslash}p{3cm}>{}l>{}l>{}l>{}l>{}l>{}l>{}l>{}l>{}l>{}l}
+\toprule
+\textbf{Successful Feed(s)} & \textbf{Q1} & \textbf{Q1 \%} & \textbf{Q2} & \textbf{Q2 \%} & \textbf{Q3} & \textbf{Q3 \%} & \textbf{Q4} & \textbf{Q4 \%} & \textbf{Total} & \textbf{Total \%}\\
+\midrule
+\textbf{Circle Edge} & 32 & \cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{86\%}}} & 37 & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{90\%}}} & 26 & \cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{84\%}}} & 40 & \cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{89\%}}} & 135 & \textbf{\cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{88\%}}}}\\
+\textbf{Inside Circle} & 0 & - & 0 & - & 1 & 100\% & 2 & 100\% & 3 & \textbf{100\%}\\
+\textbf{Outside Circle} & 21 & 84\% & 18 & 78\% & 34 & 92\% & 22 & 92\% & 95 & \textbf{87\%}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:sgp_feeds_summary}Circle Edge Feeds by Match}
+\centering
+\begin{tabular}[t]{>{}lrrl}
+\toprule
+\textbf{Match} & \textbf{Attempts} & \textbf{Successful Feeds} & \textbf{Accuracy (\%)}\\
+\midrule
+\textbf{NA} & 62 & 59 & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{95\%}}}\\
+\textbf{NA} & 45 & 39 & \cellcolor[HTML]{F4B400}{\textcolor{white}{\textbf{87\%}}}\\
+\textbf{NA} & 47 & 37 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{79\%}}}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{CENTRE PASS ATTACK SUMMARY}\label{centre-pass-attack-summary}
+
+KPI Summary
+
+\begin{itemize}
+\item
+  CPA: At least 80\% conversion rate
+\item
+  DCPA: At least 75\% conversion rate
+\end{itemize}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:cpa_summary}Centre Pass Attack Summary (Overall)}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{\raggedright\arraybackslash}p{5cm}llll>{}l}
+\toprule
+\textbf{Metric} & \textbf{Q1} & \textbf{Q2} & \textbf{Q3} & \textbf{Q4} & \textbf{Total}\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{6}{l}{\textbf{Singapore}}\\
+\textbf{\hspace{1em}CPA Goals} & 22 & 25 & 19 & 29 & \textbf{95}\\
+\textbf{\hspace{1em}CPA Conversion \%} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{51\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{56\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{45\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{64\%}}} & \textbf{\cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{54\%}}}}\\
+\textbf{\hspace{1em}DCPA Goals} & 6 & 12 & 10 & 9 & \textbf{37}\\
+\textbf{\hspace{1em}DCPA Conversion \%} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{15\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{29\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{24\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{21\%}}} & \textbf{\cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{23\%}}}}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:cpa_summary}Centre Pass Attack Summary (Per Match)}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{\raggedright\arraybackslash}p{5cm}}
+\toprule
+\textbf{Metric}\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{1}{l}{\textbf{Singapore}}\\
+\textbf{\hspace{1em}CPA Goals}\\
+\textbf{\hspace{1em}CPA Conversion \%}\\
+\textbf{\hspace{1em}DCPA Goals}\\
+\textbf{\hspace{1em}DCPA Conversion \%}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\clearpage
+
+\section{SGP CENTRE PASS ATTACKING
+TENDENCIES}\label{sgp-centre-pass-attacking-tendencies}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/cpa_tendencies-1} \end{center}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/cpa_tendencies-2} \end{center}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:cpa_combo_ranking}Top 3 CPA Position Combinations}
+\centering
+\begin{tabular}[t]{>{\raggedright\arraybackslash}p{6cm}>{\centering\arraybackslash}p{3cm}}
+\toprule
+Position Combination (1st - 2nd) & Frequency\\
+\midrule
+\textbf{C - GD} & 7\\
+\textbf{GS - WA} & 7\\
+\textbf{C - WA} & 6\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/cpa_pass_combo_ranked-1} \end{center}
+
+\clearpage
+
+\section{AANA DRAGONS (AGGREGATED) CENTRE PASS ATTACKING
+TENDENCIES}\label{aana-dragons-aggregated-centre-pass-attacking-tendencies}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/BRUPHITHA_cpa_tendencies-1} \end{center}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/BRUPHITHA_cpa_tendencies-2} \end{center}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/BRUPHITHA_pass_combo_ranked-1} \end{center}
+
+\clearpage
+
+\section{SGP GAINS \& TURNOVERS}\label{sgp-gains-turnovers}
+
+KPI Summary
+
+\begin{itemize}
+\item
+  Gains: At least 6 per quarter (24 total) and 75\%+ conversion
+\item
+  Turnovers: No more than 5 per quarter (20 total)
+\end{itemize}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:sgp_gains_turnovers}SGP Gains \& Turnovers (Quarterly)}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{\raggedright\arraybackslash}p{5cm}>{\raggedright\arraybackslash}m{1.5cm}>{\raggedright\arraybackslash}m{1.5cm}>{\raggedright\arraybackslash}m{1.5cm}>{\raggedright\arraybackslash}m{1.5cm}>{}l}
+\toprule
+Metrics & Q1 & Q2 & Q3 & Q4 & Total\\
+\midrule
+\textbf{Gains} & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{21}}} & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{23}}} & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{24}}} & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{23}}} & \textbf{\cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{91}}}}\\
+\textbf{Gains Conversion \%} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{10\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{13\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{12\%}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{13\%}}} & \textbf{\cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{12\%}}}}\\
+\textbf{Turnovers} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{24}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{26}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{24}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{23}}} & \textbf{\cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{97}}}}\\
+\textbf{Turnovers to Concede \%} & 17\% & 27\% & 25\% & 17\% & \textbf{22\%}\\
+\textbf{Gains to Turnover Differential} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-3}}} & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-3}}} & \cellcolor{white}{\textcolor{black}{\textbf{0}}} & \cellcolor{white}{\textcolor{black}{\textbf{0}}} & \textbf{\cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-6}}}}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:sgp_gains_turnovers}SGP \textbf{\textbf{Gains}} \& \textbf{\textbf{Turnovers}} (Per Match)}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{>{}l>{}m{1.5cm}}
+\toprule
+Metric\\
+\midrule
+Gains\\
+\textbf{\textbf{Gains Conversion \%}}\\
+Turnovers\\
+\textbf{\textbf{Turnovers to Concede \%}}\\
+\textbf{\textbf{Gains to Turnover Differential}}\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\section{REASON for GN \& TOs}\label{reason-for-gn-tos}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/sgp_gains_reasons_plot-1} \end{center}
+
+\begin{flushleft}\includegraphics{PostSEAG2025_files/figure-latex/sgp_turnover_reasons_plot-1} \end{flushleft}
+
+\clearpage
+
+\section{GAINS vs TURNOVERS DIFFERENTIAL
+(OVERALL)}\label{gains-vs-turnovers-differential-overall}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:sgp_gn_to_differential}Gains vs Turnovers Differential (Overall)}
+\centering
+\begin{tabular}[t]{>{\raggedright\arraybackslash}p{5cm}>{\centering\arraybackslash}m{2.5cm}>{\centering\arraybackslash}m{2.5cm}>{\centering\arraybackslash}m{2.5cm}}
+\toprule
+Metrics & Gains & Turnovers & Differential\\
+\midrule
+\textbf{Interception} & 11 & 13 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-2}}}\\
+\textbf{Pass Out of Bounds} & 7 & 19 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-12}}}\\
+\textbf{Dropped Ball} & 12 & 8 & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{4}}}\\
+\textbf{Stepping} & 10 & 11 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-1}}}\\
+\textbf{Contact} & 0 & 4 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-4}}}\\
+\addlinespace
+\textbf{Held} & 13 & 11 & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{2}}}\\
+\textbf{Over Third} & 0 & 7 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-7}}}\\
+\textbf{Offside} & 0 & 5 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-5}}}\\
+\textbf{Obstruction} & 0 & 0 & \cellcolor{white}{\textcolor{black}{\textbf{0}}}\\
+\textbf{Repossession} & 0 & 0 & \cellcolor{white}{\textcolor{black}{\textbf{0}}}\\
+\addlinespace
+\textbf{Breaking} & 0 & 0 & \cellcolor{white}{\textcolor{black}{\textbf{0}}}\\
+\textbf{Short Pass} & 0 & 0 & \cellcolor{white}{\textcolor{black}{\textbf{0}}}\\
+\textbf{Missed Shot Rebound} & 11 & 14 & \cellcolor[HTML]{E67C73}{\textcolor{white}{\textbf{-3}}}\\
+\textbf{Missed Shot Out of Bounds} & 15 & 5 & \cellcolor[HTML]{57BB8A}{\textcolor{white}{\textbf{10}}}\\
+\textbf{Centre Positioned Incorrectly} & 0 & 0 & \cellcolor{white}{\textcolor{black}{\textbf{0}}}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{OVERALL COURT LOCATION for
+GN/TOs}\label{overall-court-location-for-gntos}
+
+\begin{itemize}
+\item
+  Gains include defensive rebounds, but excludes shot out of bounds.
+\item
+  Turnovers does not include missed shots.
+\end{itemize}
+
+\begin{center}\includegraphics{PostSEAG2025_files/figure-latex/sgp_court_locations-1} \end{center}
+
+\clearpage
+
+\section{DOCUMENT METADATA}\label{document-metadata}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:document_metadata}Document Metadata Information}
+\centering
+\begin{tabular}[t]{ll}
+\toprule
+Field & Value\\
+\midrule
+\cellcolor{gray!10}{Version} & \cellcolor{gray!10}{v1.0}\\
+Document Template Created By & Ibrahim Nasaruddin\\
+\cellcolor{gray!10}{Date Created} & \cellcolor{gray!10}{10-06-2026}\\
+R Version & R version 4.5.0 (2025-04-11)\\
+\cellcolor{gray!10}{RStudio Version} & \cellcolor{gray!10}{RStudio Version 2025.09.2+418}\\
+\addlinespace
+Software Used & Hudl Sportscode\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
