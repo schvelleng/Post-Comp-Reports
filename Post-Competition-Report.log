@@ -1,11 +1,11 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.6.9)  11 JUN 2026 16:37
+This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.7.14)  25 AUG 2026 10:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**PostSEAG2025.tex
-(./PostSEAG2025.tex
+**Post-Competition-Report.tex
+(./Post-Competition-Report.tex
 LaTeX2e <2026-06-01>
-L3 programming layer <2026-05-26>
+L3 programming layer <2026-06-18>
 (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
 (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/base/size10.clo
@@ -134,7 +134,7 @@ LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
 LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
 (Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
 )) (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/unicode-math/unicode-math.sty (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/l3kernel/expl3.sty
-Package: expl3 2026-05-26 L3 programming layer (loader) 
+Package: expl3 2026-06-18 L3 programming layer (loader) 
 (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/l3backend/l3backend-xetex.def
 File: l3backend-xetex.def 2026-02-18 L3 backend support: XeTeX
 \g__graphics_track_int=\count296
@@ -506,7 +506,7 @@ Package: ulem 2019/11/18
 ) (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/bookmark/bookmark.sty
 Package: bookmark 2026-05-21 v1.32 PDF bookmarks (HO)
 (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/hyperref/hyperref.sty
-Package: hyperref 2026-04-24 v7.01q Hypertext links for LaTeX
+Package: hyperref 2026-06-17 v7.01r Hypertext links for LaTeX
 (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty
 Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)
 ) (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty
@@ -545,13 +545,13 @@ Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO)
 \Hy@linkcounter=\count337
 \Hy@pagecounter=\count338
 (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/hyperref/pd1enc.def
-File: pd1enc.def 2026-04-24 v7.01q Hyperref: PDFDocEncoding definition (HO)
+File: pd1enc.def 2026-06-17 v7.01r Hyperref: PDFDocEncoding definition (HO)
 ) (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/generic/intcalc/intcalc.sty
 Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
 )
 \Hy@SavedSpaceFactor=\count339
 (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/hyperref/puenc.def
-File: puenc.def 2026-04-24 v7.01q Hyperref: PDF Unicode definition (HO)
+File: puenc.def 2026-06-17 v7.01r Hyperref: PDF Unicode definition (HO)
 )
 Package hyperref Info: Option `unicode' set `true' on input line 4070.
 Package hyperref Info: Hyper figures OFF on input line 4199.
@@ -589,7 +589,7 @@ Package hyperref Info: PDF/A mode OFF on input line 6121.
 )
 Package hyperref Info: Driver (autodetected): hxetex.
 (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/hyperref/hxetex.def
-File: hxetex.def 2026-04-24 v7.01q Hyperref driver for XeTeX
+File: hxetex.def 2026-06-17 v7.01r Hyperref driver for XeTeX
 \pdfm@box=\box75
 \c@Hy@AnnotLevel=\count345
 \HyField@AnnotCount=\count346
@@ -606,24 +606,9 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 28
 ) (/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/bookmark/bkm-xetex.def
 File: bkm-xetex.def 2026-05-21 v1.32 bookmark driver for xetex (HO)
 \BKM@id=\count349
-)) (./PostSEAG2025.aux
-
-LaTeX Warning: Label `tab:sgp_shooting_summary' multiply defined.
-
-
-LaTeX Warning: Label `tab:sgp_shooting_summary' multiply defined.
-
-
-LaTeX Warning: Label `tab:sgp_feeds_summary' multiply defined.
-
-
-LaTeX Warning: Label `tab:cpa_summary' multiply defined.
-
-
-LaTeX Warning: Label `tab:sgp_gains_turnovers' multiply defined.
-
-)
-\openout1 = `PostSEAG2025.aux'.
+))
+No file Post-Competition-Report.aux.
+\openout1 = `Post-Competition-Report.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 105.
 LaTeX Font Info:    ... okay on input line 105.
@@ -904,157 +889,31 @@ LaTeX Font Info:    Encoding `OMX' has changed to `TU' for symbol font
 LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `bold'
 (Font)                  OMX/lmex/m/n --> TU/latinmodern-math.otf(3)/b/n on input line 105.
 Package hyperref Info: Link coloring OFF on input line 105.
-File: PostSEAG2025_files/logo.jpg Graphic file (type bmp)
-<PostSEAG2025_files/logo.jpg>
-File: PostSEAG2025_files/NetballSG_logo.jpg Graphic file (type bmp)
-<PostSEAG2025_files/NetballSG_logo.jpg>
+
+Package hyperref Warning: Rerun to get /PageLabels entry.
+
+File: Post-Competition-Report_files/logo.jpg Graphic file (type bmp)
+<Post-Competition-Report_files/logo.jpg>
+File: Post-Competition-Report_files/NetballSG_logo.jpg Graphic file (type bmp)
+<Post-Competition-Report_files/NetballSG_logo.jpg>
 [1
 
-] [2
-
 ]
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 7.0pt on input line 211.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(1)/m/n' will be
-(Font)              scaled to size 5.0pt on input line 211.
-LaTeX Font Info:    Trying to load font information for OML+lmm on input line 211.
-(/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/lm/omllmm.fd
-File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 10.00092pt on input line 211.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 7.00064pt on input line 211.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(2)/m/n' will be
-(Font)              scaled to size 5.00046pt on input line 211.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 9.99893pt on input line 211.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 6.99925pt on input line 211.
-LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
-(Font)              scaled to size 4.99947pt on input line 211.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 211.
-(/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsa.fd
-File: umsa.fd 2013/01/14 v3.01 AMS symbols A
-)
-LaTeX Font Info:    Trying to load font information for U+msb on input line 211.
-(/Users/schvelleng/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsb.fd
-File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) [3
+! Missing $ inserted.
+<inserted text> 
+                $
+l.157 \textbf{Swans_final}
+                           & \textbf{28–62} & \cellcolor[HTML]{E67C73}{\text...
+I've inserted a begin-math/end-math symbol since I think
+you left one out. Proceed, with fingers crossed.
 
-]
-File: PostSEAG2025_files/figure-latex/sgp_shooting_summary-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/sgp_shooting_summary-1.pdf>
-[4
-
-] [5
-
-]
-Missing character: There is no ≥ (U+2265) in font [lmroman10-regular]:mapping=tex-text;!
-File: PostSEAG2025_files/figure-latex/sgp_player_shooting_heatmap-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/sgp_player_shooting_heatmap-1.pdf>
-[6
-
-] [7
-
-
-] [8
-
-]
-File: PostSEAG2025_files/figure-latex/cpa_tendencies-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/cpa_tendencies-1.pdf>
-
-Overfull \hbox (108.40353pt too wide) in paragraph at lines 406--406
- [] 
- []
-
-File: PostSEAG2025_files/figure-latex/cpa_tendencies-2.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/cpa_tendencies-2.pdf>
-
-Overfull \hbox (108.40353pt too wide) in paragraph at lines 408--408
- [] 
- []
-
-
-LaTeX Warning: `!h' float specifier changed to `!ht'.
-
-File: PostSEAG2025_files/figure-latex/cpa_pass_combo_ranked-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/cpa_pass_combo_ranked-1.pdf>
-
-Overfull \hbox (108.40353pt too wide) in paragraph at lines 425--425
- [] 
- []
-
-[9
-
-] [10]
-File: PostSEAG2025_files/figure-latex/opponent_cpa_tendencies-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/opponent_cpa_tendencies-1.pdf>
-
-Overfull \hbox (108.40353pt too wide) in paragraph at lines 432--432
- [] 
- []
-
-File: PostSEAG2025_files/figure-latex/opponent_cpa_tendencies-2.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/opponent_cpa_tendencies-2.pdf>
-
-Overfull \hbox (108.40353pt too wide) in paragraph at lines 434--434
- [] 
- []
-
-File: PostSEAG2025_files/figure-latex/opponent_pass_combo_ranked-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/opponent_pass_combo_ranked-1.pdf>
-
-Overfull \hbox (108.40353pt too wide) in paragraph at lines 436--436
- [] 
- []
-
-[11
-
-] [12]
-File: PostSEAG2025_files/figure-latex/sgp_gains_reasons_plot-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/sgp_gains_reasons_plot-1.pdf>
-[13
-
-]
-File: PostSEAG2025_files/figure-latex/sgp_turnover_reasons_plot-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/sgp_turnover_reasons_plot-1.pdf>
-[14] [15] [16
-
-]
-File: PostSEAG2025_files/figure-latex/sgp_court_locations-1.pdf Graphic file (type pdf)
-<use PostSEAG2025_files/figure-latex/sgp_court_locations-1.pdf>
-
-Overfull \hbox (36.13374pt too wide) in paragraph at lines 535--535
- [] 
- []
-
-[17
-
-] [18
-
-] [19
-
-] [20
-
-] [21
-
-] (./PostSEAG2025.aux)
- ***********
-LaTeX2e <2026-06-01>
-L3 programming layer <2026-05-26>
- ***********
-
-LaTeX Warning: There were multiply-defined labels.
-
- ) 
+ 
 Here is how much of TeX's memory you used:
- 18637 strings out of 469836
- 345167 string characters out of 5468226
- 910884 words of memory out of 5000000
- 47325 multiletter control sequences out of 15000+600000
- 631340 words of font info for 70 fonts, out of 8000000 for 9000
+ 18388 strings out of 469837
+ 334877 string characters out of 5468239
+ 898779 words of memory out of 5000000
+ 47121 multiletter control sequences out of 15000+600000
+ 628495 words of font info for 52 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 90i,16n,114p,669b,417s stack positions out of 10000i,1000n,20000p,200000b,200000s
-
-Output written on PostSEAG2025.pdf (21 pages).
+ 90i,9n,114p,366b,380s stack positions out of 10000i,1000n,20000p,200000b,200000s
+Output written on Post-Competition-Report.pdf (1 page).

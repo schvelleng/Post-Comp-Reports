@@ -15,7 +15,7 @@ data_list <- lapply(names(data_list), function(fname) {
   data_list[[fname]] %>%
     mutate(
       Timeline = str_remove(fname, "\\.csv$"),
-      Opponent = str_replace(fname, ".*vs (.+)_\\d{8}\\.csv", "\\1")
+      Opponent = str_replace(fname, ".*vs(.+)_\\d{8}\\.csv", "\\1")
     ) %>%
     select(Timeline, Opponent, everything())
 })
